@@ -1,2 +1,2 @@
 # fs-board
-Tool to update the FieldShift 
+Tool to update the FieldShift board
