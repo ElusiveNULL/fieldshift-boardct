@@ -12,12 +12,13 @@ class Player:
 class Operator:
     atk = 4
     maxhp = 5
-    def __init__(self,hp,opid,job,team,reserve):
+    def __init__(self,hp,opid,job,team,reserve,location):
         self.hp = hp
         self.opid = opid
         self.job = job
         self.team = team
         self.reserve = reserve
+        self.location = location
 
 class Battlefield:
     def __init__(self,contents):
@@ -30,8 +31,8 @@ class Facilities:
         self.facilityid = facilityid
 
 ### PREPARATIONS ###
-p1 = Player("No name",1,[])
-p2 = Player("No name",2,[])
+p1 = Player("No name",1,[],None)
+p2 = Player("No name",2,[],None)
 def createOperators(playernum, isreserve: bool):
     jobs = ["Longwatch","Technician","Blade","Medic","Specialist"]
     idlist = list(range(10))
@@ -46,7 +47,7 @@ def createOperators(playernum, isreserve: bool):
     idlist = temp
     result = []
     for i in range(5):
-        result.append(Operator(5,idlist[i],jobs[i],playernum,isreserve))
+        result.append(Operator(5,idlist[i],jobs[i],playernum,isreserve,0))
     return result
 
 p1.ops = createOperators(1,False)
@@ -59,6 +60,9 @@ board.contents[0].extend(p1.ops)
 board.contents[9].extend(p2.ops)
 p1.ops.extend(createOperators(1,True))
 p2.ops.extend(createOperators(2,True))
+
+p1.selectedop = p1.ops[0]
+p2.selectedop = p2.ops[0]
 
 ### SUPPORTING FUNCTIONS ###
 def printPlayerStats(pname):
@@ -80,11 +84,20 @@ def printBoard():
         print("")
     print("\n")
 
+currentplayer = p1
+
 def parsecmd(cmd):
-    match cmd[0]:
+    cmdarg = int(cmd[1])
+    match int(cmd[0]):
         case 0:
             pass
         case 1:
+            currentplayer.selectedop = currentplayer.ops[cmdarg]
+        case 2:
+            board.contents[currentplayer.selectedop.location].remove(currentplayer.selectedop)
+            board.contents[cmdarg].append(currentplayer.selectedop)
+            currentplayer.selectedop.location = cmdarg
+        case _:
             pass
 
 ### MAIN ###
@@ -92,15 +105,14 @@ activegame = True
 p1.name = input("Enter name of Player 1: ")
 p2.name = input("Enter name of Player 2: ")
 print("[COMMENCE GAME]")
-currentplayer = p1
 while activegame:
-    command = int(input("Player " + str(currentplayer.playerid) + ": "))
+    parsecmd((input("Player " + str(currentplayer.playerid) + ": ")))
     # Print updated info
     print(chr(27) + "[2J")
     printPlayerStats(p1)   
     printPlayerStats(p2)
     printBoard()
-    if (currentplayer == p2):
-        currentplayer = p2
-    else:
-        currentplayer = p1
+#    if (currentplayer == p1):
+#        currentplayer = p2
+#    else:
+#        currentplayer = p1
