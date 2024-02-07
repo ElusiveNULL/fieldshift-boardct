@@ -36,9 +36,9 @@ def createOperators(playernum, isreserve: bool):
     idlist = list(range(10))
     if isreserve:
         idlist = idlist[4:]
-    playerchar = "\+"
+    playerchar = '\+'
     if (playernum == 2):
-        playerchar = "\-"
+        playerchar = '\-'
     for i in idlist:
         i = playerchar + str(i)
     result = []
