@@ -1,6 +1,6 @@
 ### CLASS DEFINITIONS ###
 class Player:
-    def __init__(self,name,playerid,ops,selectedop):
+    def __init__(self,name,playerid,ops,selectedop,facilities):
         self.crates = 1
         self.skilldelay = 5
         self.supportdelay = 5
@@ -8,6 +8,7 @@ class Player:
         self.ops = []
         self.playerid = playerid
         self.selectedop = selectedop
+        self.facilities = facilities
 
 class Operator:
     atk = 4
@@ -25,15 +26,15 @@ class Battlefield:
     def __init__(self,contents):
         self.contents = contents
 
-class Facilities:
+class Facility:
     def __init__(self,job,crates,facilityid):
         self.job = job
         self.crates = crates
         self.facilityid = facilityid
 
 ### PREPARATIONS ###
-p1 = Player("No name",1,[],None)
-p2 = Player("No name",2,[],None)
+p1 = Player("No name",1,[],None,[Facility("Artillery",0,0),Facility("Medbay",0,1),Facility("Base",0,2)])
+p2 = Player("No name",2,[],None,[Facility("Artillery",0,0),Facility("Medbay",0,1),Facility("Base",0,2)])
 def createOperators(playernum, isreserve: bool):
     jobs = ["Longwatch","Technician","Blade","Medic","Specialist"]
     idlist = list(range(10))
@@ -56,7 +57,7 @@ def createOperators(playernum, isreserve: bool):
 p1.ops = createOperators(1,False)
 p2.ops = createOperators(2,False)
 
-board = Battlefield(list())
+board = Battlefield([])
 for i in range(10):
     board.contents.append(list())
 board.contents[0].extend(p1.ops)
@@ -73,6 +74,9 @@ def printPlayerStats(pname):
          "\nSkill Cooldown: " + str(pname.skilldelay) + \
          "\nSupport Cooldown: " + str(pname.supportdelay) + \
          "\nCrates: " + str(pname.crates) + \
+         "\nFacility Crates: " + str(pname.facilities[0].crates) + \
+         "-" + str(pname.facilities[1].crates) + \
+         "-" + str(pname.facilities[2].crates) + \
          "\nReserve:",end=" ")
     for op in pname.ops:
        if op.reserve and op.alive:
@@ -101,21 +105,40 @@ def parsecmd(cmd):
     else:
         otherplayer = p1
     match int(cmd[0]):
-        case 0:
+        case 0: # AUX - Auxiliary
             shouldswitch = False
-        case 1:
+        case 1: # SWC - Switch
             currentplayer.selectedop = currentplayer.ops[cmdarg]
             shouldswitch = False
-        case 2:
+        case 2: # MOV - Move
             board.contents[currentplayer.selectedop.location].remove(currentplayer.selectedop)
             board.contents[cmdarg].append(currentplayer.selectedop)
             currentplayer.selectedop.location = cmdarg
-        case 3:
+        case 3: # HIT - Attack
             otherplayer.ops[cmdarg].hp -= 3
             if (otherplayer.ops[cmdarg].hp < 1):
                 otherplayer.ops[cmdarg].alive = False
                 otherplayer.ops[cmdarg].reserve = True
                 board.contents[otherplayer.ops[cmdarg].location].remove(otherplayer.ops[cmdarg])
+        case 4: # RNF - Reinforce
+            currentplayer.crates -= 1
+            currentplayer.facilities[cmdarg].crates += 1
+        case 5: # RLC - Reallocate
+            currentplayer.crates += 1
+            currentplayer.facilities[cmdarg].crates -= 1
+            shouldswitch = False
+        case 6: # RGP - Regroup
+            if currentplayer.ops[cmdarg].reserve:
+                currentplayer.ops[cmdarg].reserve = False
+                if currentplayer == p1:
+                    board.contents[0].append(currentplayer.ops[cmdarg])
+                    currentplayer.selectedop.location = 0
+                else:
+                    board.contents[9].append(currentplayer.ops[cmdarg])
+                    currentplayer.selectedop.location = 9
+            else:
+                currentplayer.ops[cmdarg].reserve = True
+                board.contents[currentplayer.ops[cmdarg].location].remove(currentplayer.ops[cmdarg])
         case _:
             pass
     if (shouldswitch):
