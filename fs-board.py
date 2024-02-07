@@ -1,3 +1,5 @@
+### IMPORTS ###
+from os import system
 ### CLASS DEFINITIONS ###
 class Player:
     def __init__(self,name,playerid,ops,selectedop,facilities):
@@ -145,12 +147,13 @@ def parsecmd(cmd):
             board.contents[cmdarg].append(currentplayer.selectedop)
             currentplayer.selectedop.location = cmdarg
         case 3: # HIT - Attack
-            if checkRange(currentplayer.selectedop,otherplayer.ops[cmdarg]) == -1:
-                print(chr(27) + "[2J")
+            atkdamage = checkRange(currentplayer.selectedop,otherplayer.ops[cmdarg])
+            if atkdamage == -1:
+                system("cls||clear")
                 print("Player " + str(currentplayer.playerid) \
                       + ": Illegal action - Insufficient range.\n[PLAYER " + str(otherplayer.playerid) + " VICTORY]")
                 return False
-            otherplayer.ops[cmdarg].hp -= 3
+            otherplayer.ops[cmdarg].hp -= atkdamage
             if (otherplayer.ops[cmdarg].hp < 1):
                 otherplayer.ops[cmdarg].alive = False
                 otherplayer.ops[cmdarg].reserve = True
@@ -184,17 +187,18 @@ def parsecmd(cmd):
     return True
 
 ### MAIN ###
+system("cls||clear")
 p1.name = input("Enter name of Player 1: ")
 p2.name = input("Enter name of Player 2: ")
+system("cls||clear")
 printPlayerStats(p1)   
 printPlayerStats(p2)
 printBoard()
-print("[COMMENCE GAME]")
 while activegame:
-    if not parsecmd((input("Player " + str(currentplayer.playerid) + ": "))):
+    if not parsecmd((input("Player " + str(currentplayer.playerid) + " (" + currentplayer.selectedop.opid + "): "))):
         break
     # Print updated info
-    print(chr(27) + "[2J")
+    system("cls||clear")
     printPlayerStats(p1)
     printPlayerStats(p2)
     printBoard()
