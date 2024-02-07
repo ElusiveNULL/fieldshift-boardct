@@ -23,8 +23,9 @@ class Operator:
         self.alive = alive
 
 class Battlefield:
-    def __init__(self,contents):
+    def __init__(self,contents,terrain):
         self.contents = contents
+        self.terrain = terrain
 
 class Facility:
     def __init__(self,job,crates,facilityid):
@@ -57,7 +58,13 @@ def createOperators(playernum, isreserve: bool):
 p1.ops = createOperators(1,False)
 p2.ops = createOperators(2,False)
 
-board = Battlefield([])
+board = Battlefield([],[])
+def createSectors():
+    sectorlist = ["Ruins","Grass","Plain","Plain","Mount"]
+    board.terrain.extend(sectorlist)
+    board.terrain.extend(sectorlist[::-1])
+createSectors()
+
 for i in range(10):
     board.contents.append(list())
 board.contents[0].extend(p1.ops)
@@ -69,6 +76,27 @@ p1.selectedop = p1.ops[0]
 p2.selectedop = p2.ops[0]
 
 ### SUPPORTING FUNCTIONS ###
+def checkRange(attacker, target):
+    effectiveRange = 3
+    effectiveDamage = attacker.atk
+    if attacker.job == "Longwatch":
+        effectiveRange = 5
+    match target.location:
+        case 0 | 9:
+            effectiveRange -= 2
+            effectiveDamage -= 2
+        case 1 | 8:
+            effectiveRange -= 1
+        case 4 | 5:
+            effectiveDamage += 1
+    if attacker.location == 4 or attacker.location == 5:
+        effectiveDamage += 1
+    if attacker.job == "Blade":
+        effectiveRange = 0
+    if effectiveRange < abs(attacker.location - target.location):
+        return -1
+    return effectiveDamage
+
 def printPlayerStats(pname):
     print("[Player " + str(pname.playerid) + ": " + pname.name + "]" + \
          "\nSkill Cooldown: " + str(pname.skilldelay) + \
@@ -85,7 +113,7 @@ def printPlayerStats(pname):
 
 def printBoard():
     for i in range(10):
-        print("Sector " + str(i) + ":",end=" ")
+        print(board.terrain[i] + " Sector " + str(i) + ":",end=" ")
         for op in board.contents[i]:
             print(op.opid,end="")
             if (op.hp < 5):
@@ -96,7 +124,9 @@ def printBoard():
 
 currentplayer = p1
 
+activegame = True
 def parsecmd(cmd):
+    global activegame 
     cmdarg = int(cmd[1])
     shouldswitch = True
     global currentplayer
@@ -115,6 +145,11 @@ def parsecmd(cmd):
             board.contents[cmdarg].append(currentplayer.selectedop)
             currentplayer.selectedop.location = cmdarg
         case 3: # HIT - Attack
+            if checkRange(currentplayer.selectedop,otherplayer.ops[cmdarg]) == -1:
+                print(chr(27) + "[2J")
+                print("Player " + str(currentplayer.playerid) \
+                      + ": Illegal action - Insufficient range.\n[PLAYER " + str(otherplayer.playerid) + " VICTORY]")
+                return False
             otherplayer.ops[cmdarg].hp -= 3
             if (otherplayer.ops[cmdarg].hp < 1):
                 otherplayer.ops[cmdarg].alive = False
@@ -146,16 +181,20 @@ def parsecmd(cmd):
             currentplayer = p2
         else:
             currentplayer = p1
+    return True
 
 ### MAIN ###
-activegame = True
 p1.name = input("Enter name of Player 1: ")
 p2.name = input("Enter name of Player 2: ")
+printPlayerStats(p1)   
+printPlayerStats(p2)
+printBoard()
 print("[COMMENCE GAME]")
 while activegame:
-    parsecmd((input("Player " + str(currentplayer.playerid) + ": ")))
+    if not parsecmd((input("Player " + str(currentplayer.playerid) + ": "))):
+        break
     # Print updated info
     print(chr(27) + "[2J")
-    printPlayerStats(p1)   
+    printPlayerStats(p1)
     printPlayerStats(p2)
     printBoard()
