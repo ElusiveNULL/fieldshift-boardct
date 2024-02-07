@@ -1,12 +1,13 @@
 ### CLASS DEFINITIONS ###
 class Player:
-    def __init__(self,name,playerid,ops):
-        self.playerid = playerid
+    def __init__(self,name,playerid,ops,selectedop):
         self.crates = 1
         self.skilldelay = 5
         self.supportdelay = 5
         self.name = name
         self.ops = []
+        self.playerid = playerid
+        self.selectedop = selectedop
 
 class Operator:
     atk = 4
@@ -36,11 +37,13 @@ def createOperators(playernum, isreserve: bool):
     idlist = list(range(10))
     if isreserve:
         idlist = idlist[4:]
-    playerchar = '\+'
+    playerchar = '+'
     if (playernum == 2):
-        playerchar = '\-'
+        playerchar = '-'
+    temp,result = [], []
     for i in idlist:
-        i = playerchar + str(i)
+        temp.append(playerchar + str(i))
+    idlist = temp
     result = []
     for i in range(5):
         result.append(Operator(5,idlist[i],jobs[i],playernum,isreserve))
@@ -77,6 +80,13 @@ def printBoard():
         print("")
     print("\n")
 
+def parsecmd(cmd):
+    match cmd[0]:
+        case 0:
+            pass
+        case 1:
+            pass
+
 ### MAIN ###
 activegame = True
 p1.name = input("Enter name of Player 1: ")
@@ -84,9 +94,13 @@ p2.name = input("Enter name of Player 2: ")
 print("[COMMENCE GAME]")
 currentplayer = p1
 while activegame:
-   cmd = int(input("Player " + str(currentplayer.playerid) + ": "))
-   # Print updated info
-   print(chr(27) + "[2J")
-   printPlayerStats(p1)   
-   printPlayerStats(p2)
-   printBoard()
+    command = int(input("Player " + str(currentplayer.playerid) + ": "))
+    # Print updated info
+    print(chr(27) + "[2J")
+    printPlayerStats(p1)   
+    printPlayerStats(p2)
+    printBoard()
+    if (currentplayer == p2):
+        currentplayer = p2
+    else:
+        currentplayer = p1
