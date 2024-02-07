@@ -12,13 +12,14 @@ class Player:
 class Operator:
     atk = 4
     maxhp = 5
-    def __init__(self,hp,opid,job,team,reserve,location):
+    def __init__(self,hp,opid,job,team,reserve,location,alive):
         self.hp = hp
         self.opid = opid
         self.job = job
         self.team = team
         self.reserve = reserve
         self.location = location
+        self.alive = alive
 
 class Battlefield:
     def __init__(self,contents):
@@ -49,7 +50,7 @@ def createOperators(playernum, isreserve: bool):
     idlist = temp
     result = []
     for i in range(5):
-        result.append(Operator(5,idlist[i],jobs[i],playernum,isreserve,startingsector))
+        result.append(Operator(5,idlist[i],jobs[i],playernum,isreserve,startingsector,True))
     return result
 
 p1.ops = createOperators(1,False)
@@ -74,7 +75,7 @@ def printPlayerStats(pname):
          "\nCrates: " + str(pname.crates) + \
          "\nReserve:",end=" ")
     for op in pname.ops:
-       if op.reserve == True:
+       if op.reserve and op.alive:
            print(str(pname.ops.index(op)),end=" ")
     print("\n")
 
@@ -82,7 +83,10 @@ def printBoard():
     for i in range(10):
         print("Sector " + str(i) + ":",end=" ")
         for op in board.contents[i]:
-            print(op.opid,end=" ")
+            print(op.opid,end="")
+            if (op.hp < 5):
+                print("v" + str(op.hp),end="")
+            print(end=" ")
         print("")
     print("\n")
 
@@ -92,6 +96,10 @@ def parsecmd(cmd):
     cmdarg = int(cmd[1])
     shouldswitch = True
     global currentplayer
+    if currentplayer == p1:
+        otherplayer = p2
+    else:
+        otherplayer = p1
     match int(cmd[0]):
         case 0:
             shouldswitch = False
@@ -102,6 +110,12 @@ def parsecmd(cmd):
             board.contents[currentplayer.selectedop.location].remove(currentplayer.selectedop)
             board.contents[cmdarg].append(currentplayer.selectedop)
             currentplayer.selectedop.location = cmdarg
+        case 3:
+            otherplayer.ops[cmdarg].hp -= 3
+            if (otherplayer.ops[cmdarg].hp < 1):
+                otherplayer.ops[cmdarg].alive = False
+                otherplayer.ops[cmdarg].reserve = True
+                board.contents[otherplayer.ops[cmdarg].location].remove(otherplayer.ops[cmdarg])
         case _:
             pass
     if (shouldswitch):
