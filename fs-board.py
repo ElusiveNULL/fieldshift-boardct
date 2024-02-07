@@ -39,7 +39,9 @@ def createOperators(playernum, isreserve: bool):
     if isreserve:
         idlist = idlist[4:]
     playerchar = '+'
+    startingsector = 0
     if (playernum == 2):
+        startingsector = 9
         playerchar = '-'
     temp,result = [], []
     for i in idlist:
@@ -47,7 +49,7 @@ def createOperators(playernum, isreserve: bool):
     idlist = temp
     result = []
     for i in range(5):
-        result.append(Operator(5,idlist[i],jobs[i],playernum,isreserve,0))
+        result.append(Operator(5,idlist[i],jobs[i],playernum,isreserve,startingsector))
     return result
 
 p1.ops = createOperators(1,False)
@@ -88,17 +90,25 @@ currentplayer = p1
 
 def parsecmd(cmd):
     cmdarg = int(cmd[1])
+    shouldswitch = True
+    global currentplayer
     match int(cmd[0]):
         case 0:
-            pass
+            shouldswitch = False
         case 1:
             currentplayer.selectedop = currentplayer.ops[cmdarg]
+            shouldswitch = False
         case 2:
             board.contents[currentplayer.selectedop.location].remove(currentplayer.selectedop)
             board.contents[cmdarg].append(currentplayer.selectedop)
             currentplayer.selectedop.location = cmdarg
         case _:
             pass
+    if (shouldswitch):
+        if (currentplayer == p1):
+            currentplayer = p2
+        else:
+            currentplayer = p1
 
 ### MAIN ###
 activegame = True
@@ -112,7 +122,3 @@ while activegame:
     printPlayerStats(p1)   
     printPlayerStats(p2)
     printBoard()
-#    if (currentplayer == p1):
-#        currentplayer = p2
-#    else:
-#        currentplayer = p1
