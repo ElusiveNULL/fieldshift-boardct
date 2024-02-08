@@ -114,7 +114,14 @@ def check_range(attacker, target):
     return net_damage
 
 
+current_player = p1
+other_player = p2
+active_game = True
+
+
 def print_player_info(pname):
+    global active_game
+    deployed_ops = 0
     print("[Player " + str(pname.player_id) + ": " + pname.name + "]" +
           "\nSkill Cooldown: " + str(pname.skill_delay) +
           "\nSupport Cooldown: " + str(pname.support_delay) +
@@ -124,9 +131,21 @@ def print_player_info(pname):
           "-" + str(pname.facilities[2].crates) +
           "\nReserve:", end=" ")
     for op in pname.ops:
-        if op.reserve and op.alive:
-            print(str(pname.ops.index(op)), end=" ")
+        if op.alive:
+            if op.reserve:
+                print(str(pname.ops.index(op)), end=" ")
+            else:
+                deployed_ops += 1
+    if deployed_ops == 0:
+        print("")
+        system("cls||clear")
+        print("Player " + str(pname.player_id)
+              + ": Game over - All deployed operators eliminated.\n[PLAYER " +
+              str(other_player.player_id) + " VICTORY]\n")
+        active_game = False
+        return False
     print("\n")
+    return True
 
 
 def print_board():
@@ -141,15 +160,12 @@ def print_board():
     print("\n")
 
 
-current_player = p1
-active_game = True
-
-
 def parse_cmd(cmd):
     global active_game
+    global current_player
+    global other_player
     cmd_arg = int(cmd[1])
     should_switch = True
-    global current_player
     if current_player == p1:
         other_player = p2
     else:
@@ -184,17 +200,23 @@ def parse_cmd(cmd):
             current_player.facilities[cmd_arg].crates -= 1
             should_switch = False
         case 6:  # RGP - Regroup
-            if current_player.ops[cmd_arg].reserve:
-                current_player.ops[cmd_arg].reserve = False
+            rgp_target = current_player.ops[cmd_arg]
+            if rgp_target.reserve:
+                rgp_target.reserve = False
                 if current_player == p1:
-                    board.contents[0].append(current_player.ops[cmd_arg])
+                    board.contents[0].append(rgp_target)
                     current_player.selected_op.location = 0
                 else:
-                    board.contents[9].append(current_player.ops[cmd_arg])
+                    board.contents[9].append(rgp_target)
                     current_player.selected_op.location = 9
             else:
-                current_player.ops[cmd_arg].reserve = True
-                board.contents[current_player.ops[cmd_arg].location].remove(current_player.ops[cmd_arg])
+                rgp_target.reserve = True
+                board.contents[rgp_target.location].remove(rgp_target)
+                if rgp_target == current_player.selected_op:
+                    for op in current_player.ops:
+                        if op.alive and not op.reserve:
+                            current_player.selected_op = op
+                            break
         case _:
             pass
     if should_switch:
@@ -219,6 +241,8 @@ while active_game:
         break
     # Print updated info
     system("cls||clear")
-    print_player_info(p1)
-    print_player_info(p2)
+    if not print_player_info(p1):
+        continue
+    if not print_player_info(p2):
+        continue
     print_board()
