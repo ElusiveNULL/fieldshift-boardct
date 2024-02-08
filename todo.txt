@@ -1,0 +1,14 @@
+Add OVW instruction
+  - Would be difficult to optimize
+Add SPT instruction
+  - Most complex instruction by far
+Add SKL instruction
+  - Simplest of the yet unimplemented instructions
+Implement auxiliary communication
+  - Handling rule breakage disputes would be tough:
+    - Would require checking for rule breakages
+    - And remembering them for the next turn
+    - But discarding them afterwards
+Add input type handling
+Add support for STDEX and STDEX Type-A rulesets
+  - Not sure how to go about implementing this
