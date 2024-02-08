@@ -239,3 +239,4 @@ fabric.properties
 
 # Custom
 *:Zone.Identifier
+.idea/

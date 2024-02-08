@@ -2,8 +2,6 @@ Add OVW instruction
   - Would be difficult to optimize
 Add SKL instruction
   - Most complex instruction by far
-Add SPT instruction
-  - Simplest of the yet unimplemented instructions
 Implement auxiliary communication
   - Handling rule breakage disputes would be tough:
     - Would require checking for rule breakages
