@@ -236,6 +236,11 @@ def print_board():
     print("\n")
 
 
+def validate_cmd(cmd: str):
+    # May need to update this for different rulesets in the future
+    return len(cmd) == 2 and cmd.isdecimal()
+
+
 def parse_cmd(cmd):
     global active_game
     global current_player
@@ -352,9 +357,15 @@ print_player_info(p1)
 print_player_info(p2)
 print_board()
 while active_game:
-    if not parse_cmd((input("Player " + str(current_player.player_id) +
-                            " (" + current_player.selected_op.op_id + "): "))):
+    cmd = input("Player " + str(current_player.player_id) +
+                " (" + current_player.selected_op.op_id + "): ")
+
+    if not validate_cmd(cmd):
+        print("'" + cmd + "' is not a valid command.")
+        continue
+    if not parse_cmd(cmd):
         break
+
     # Print updated info
     system("clear||cls")
     if not print_player_info(p1):
