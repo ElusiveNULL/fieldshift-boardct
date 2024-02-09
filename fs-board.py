@@ -100,8 +100,10 @@ board.contents[9].extend(p2.ops[:5])
 
 
 # SUPPORTING FUNCTIONS #
-def switch_reserve_status(operator: Operator):
+def switch_reserve_status(operator: Operator, is_support: bool):
     if operator.reserve:
+        if not is_support:
+            current_player.crates -= 1
         operator.reserve = False
         if current_player == p1:
             board.contents[0].append(operator)
@@ -110,6 +112,8 @@ def switch_reserve_status(operator: Operator):
             board.contents[9].append(operator)
             current_player.selected_op.location = 9
     else:
+        if not is_support:
+            current_player.crates += 1
         operator.reserve = True
         board.contents[operator.location].remove(operator)
         if operator == current_player.selected_op:
@@ -290,7 +294,7 @@ def parse_cmd(cmd):
 
         case 6:  # RGP - Regroup
             rgp_target = current_player.ops[cmd_arg]
-            switch_reserve_status(rgp_target)
+            switch_reserve_status(rgp_target, False)
 
         case 9:  # SPT - Support
             if current_player.facilities[0].facility_aux == 1:
@@ -312,7 +316,7 @@ def parse_cmd(cmd):
                                     op.hp = 5
                     case 2:
                         for op in current_player.ops:
-                            switch_reserve_status(op)
+                            switch_reserve_status(op, True)
                     case _:
                         should_switch = False
 
