@@ -105,6 +105,11 @@ board.contents[0].extend(p1.ops[:5])
 board.contents[9].extend(p2.ops[:5])
 
 
+current_player = p1
+other_player = p2
+active_game = True
+
+
 # SUPPORTING FUNCTIONS #
 def switch_reserve_status(operator: Operator, is_support: bool):
     if operator.reserve:
@@ -151,11 +156,6 @@ def check_range(attacker: Operator, target: Operator, automatic: bool):
             return 0
         current_player.cheated = True
     return net_damage
-
-
-current_player = p1
-other_player = p2
-active_game = True
 
 
 def check_cooldowns():
