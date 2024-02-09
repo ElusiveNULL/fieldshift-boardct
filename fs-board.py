@@ -33,7 +33,8 @@ class Facility:
 
 
 class Player:
-    def __init__(self, name: str, player_id: int, ops: list[Operator], selected_op: Operator, facilities: list[Facility]):
+    def __init__(self, name: str, player_id: int, ops: list[Operator],
+                 selected_op: Operator, facilities: list[Facility], cheated: bool):
         self.crates = 1
         self.skill_delay = 5
         self.support_delay = 5
@@ -42,24 +43,13 @@ class Player:
         self.ops = ops
         self.selected_op = selected_op
         self.facilities = facilities
+        self.cheated = cheated
 
 
 class Battlefield:
     def __init__(self, contents: list[list[Operator]], terrain: list[str]):
         self.contents = contents
         self.terrain = terrain
-
-
-# PREPARATIONS #
-def create_player(player_name: str, player_id: int):
-    operators = create_operators(player_id, False)
-    operators.extend(create_operators(player_id, True))
-    facilities = [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0)]
-    return Player(player_name, player_id, operators, operators[0], facilities)
-
-
-p1 = create_player("No name", 1)
-p2 = create_player("No name", 2)
 
 
 def create_operators(player_num: int, is_reserve: bool):
@@ -82,6 +72,16 @@ def create_operators(player_num: int, is_reserve: bool):
     return result
 
 
+# PREPARATIONS #
+def create_player(player_name: str, player_id: int):
+    operators = create_operators(player_id, False)
+    operators.extend(create_operators(player_id, True))
+    facilities = [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0)]
+    return Player(player_name, player_id, operators, operators[0], facilities, False)
+
+
+p1 = create_player("No name", 1)
+p2 = create_player("No name", 2)
 board = Battlefield([], [])
 
 
@@ -119,7 +119,7 @@ def switch_reserve_status(operator: Operator):
                     break
 
 
-def check_range(attacker: Operator, target: Operator):
+def check_range(attacker: Operator, target: Operator, automatic: bool):
     net_range = 3
     net_damage = attacker.atk
     if attacker.job == "Longwatch":
@@ -137,7 +137,9 @@ def check_range(attacker: Operator, target: Operator):
     if attacker.job == "Blade":
         net_range = 0
     if net_range < abs(attacker.location - target.location):
-        return -1
+        if automatic:  # If check_range was executed due to an automatic attack, will not mark out of range as cheating
+            return 0
+        current_player.cheated = True
     return net_damage
 
 
@@ -203,11 +205,10 @@ def print_player_info(player: Player):
                 deployed_ops += 1
     if deployed_ops == 0:
         print("")
-        system("cls||clear")
         print("Player " + str(player.player_id)
               + ": Game over - All deployed operators eliminated.\n[PLAYER " +
               str(other_player.player_id) + " VICTORY]\n")
-        active_game = False
+        input("Press Enter to continue...")
         return False
     print("\n")
     return True
@@ -229,6 +230,7 @@ def parse_cmd(cmd):
     global active_game
     global current_player
     global other_player
+    current_player.cheated = False
     cmd_arg = int(cmd[1])
     should_switch = True
     if current_player == p1:
@@ -237,32 +239,59 @@ def parse_cmd(cmd):
         other_player = p1
     match int(cmd[0]):
         case 0:  # AUX - Auxiliary
-            should_switch = False
+            match cmd_arg:
+                case 3:  # Concede
+                    print("Player " + str(current_player.player_id)
+                          + ": Concede\n[PLAYER " + str(
+                        other_player.player_id) + " VICTORY]")
+                    input("Press Enter to continue...")
+                    return False
+                case 6:  # Dispute
+                    if other_player.cheated:
+                        print("Player " + str(other_player.player_id)
+                              + ": Game over - Called out for rule breakage\n[PLAYER " + str(
+                            other_player.player_id) + " VICTORY]")
+                        input("Press Enter to continue...")
+                        return False
+                case 8:
+                    system("cls||clear")
+                    print("Player " + str(current_player.player_id) + ": Request draw")
+                    if input("Player " + str(other_player.player_id) + " response: ") == "01":
+                        system("cls||clear")
+                        print_player_info(p1)
+                        print_player_info(p2)
+                        print_board()
+                        print("Game concluded: Draw by mutual agreement")
+                        input("Press Enter to continue...")
+                        return False
+                    should_switch = False
+
         case 1:  # SWC - Switch
             current_player.selected_op = current_player.ops[cmd_arg]
             should_switch = False
+
         case 2:  # MOV - Move
             board.contents[current_player.selected_op.location].remove(current_player.selected_op)
             board.contents[cmd_arg].append(current_player.selected_op)
             current_player.selected_op.location = cmd_arg
+
         case 3:  # HIT - Attack
-            atk_damage = check_range(current_player.selected_op, other_player.ops[cmd_arg])
-            if atk_damage == -1:
-                system("cls||clear")
-                print("Player " + str(current_player.player_id)
-                      + ": Illegal action - Insufficient range.\n[PLAYER " + str(other_player.player_id) + " VICTORY]")
-                return False
-            other_player.ops[cmd_arg].take_damage(atk_damage)
+            other_player.ops[cmd_arg].take_damage(check_range(
+                current_player.selected_op, other_player.ops[cmd_arg], False))
+
         case 4:  # RNF - Reinforce
             current_player.crates -= 1
             current_player.facilities[cmd_arg].allocated += 1
+
         case 5:  # WDR - Withdraw
             current_player.crates += 1
             current_player.facilities[cmd_arg].allocated -= 1
             should_switch = False
+
         case 6:  # RGP - Regroup
             rgp_target = current_player.ops[cmd_arg]
             switch_reserve_status(rgp_target)
+
         case 9:  # SPT - Support
             if current_player.facilities[0].facility_aux == 1:
                 current_player.support_delay = 5 - current_player.facilities[2].allocated
@@ -284,8 +313,11 @@ def parse_cmd(cmd):
                     case 2:
                         for op in current_player.ops:
                             switch_reserve_status(op)
+                    case _:
+                        should_switch = False
+
         case _:
-            pass
+            should_switch = False
     check_cooldowns()
     if should_switch:
         if current_player == p1:
