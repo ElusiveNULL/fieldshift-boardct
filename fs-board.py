@@ -244,6 +244,8 @@ def parse_cmd(cmd):
     match int(cmd[0]):
         case 0:  # AUX - Auxiliary
             match cmd_arg:
+                case 0 | 1 | 4 | 7:
+                    should_switch = False
                 case 6:  # Dispute
                     if other_player.cheated:
                         print("Player " + str(other_player.player_id)
