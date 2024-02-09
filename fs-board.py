@@ -266,9 +266,9 @@ def parse_cmd(cmd):
             rgp_target = current_player.ops[cmd_arg]
             switch_reserve_status(rgp_target)
         case 9:  # SPT - Support
-            if current_player.facilities[0].auxiliary == 1:
+            if current_player.facilities[0].facility_aux == 1:
                 current_player.support_delay = 5 - current_player.facilities[2].allocated
-                current_player.facilities[0].auxiliary = 0
+                current_player.facilities[0].facility_aux = 0
                 for op in board.contents[cmd_arg]:
                     if op.team == other_player.player_id:
                         op.take_damage(current_player.facilities[0].allocated)
@@ -276,7 +276,7 @@ def parse_cmd(cmd):
                 selected_facility = current_player.facilities[cmd_arg]
                 match cmd_arg:
                     case 0:
-                        selected_facility.auxiliary = 1
+                        selected_facility.facility_aux = 1
                     case 1:
                         for op in current_player.ops:
                             if op.hp < 5 and not op.reserve:
