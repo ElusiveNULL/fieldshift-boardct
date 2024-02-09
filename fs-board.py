@@ -254,10 +254,10 @@ def parse_cmd(cmd):
                         input("Press Enter to continue...")
                         return False
                 case 8:
-                    system("cls||clear")
+                    system("clear||cls")
                     print("Player " + str(current_player.player_id) + ": Request draw")
                     if input("Player " + str(other_player.player_id) + " response: ") == "01":
-                        system("cls||clear")
+                        system("clear||cls")
                         print_player_info(p1)
                         print_player_info(p2)
                         print_board()
@@ -328,10 +328,10 @@ def parse_cmd(cmd):
 
 
 # MAIN #
-system("cls||clear")
+system("clear||cls")
 p1.name = input("Enter name of Player 1: ")
 p2.name = input("Enter name of Player 2: ")
-system("cls||clear")
+system("clear||cls")
 print_player_info(p1)
 print_player_info(p2)
 print_board()
@@ -340,7 +340,7 @@ while active_game:
                             " (" + current_player.selected_op.op_id + "): "))):
         break
     # Print updated info
-    system("cls||clear")
+    system("clear||cls")
     if not print_player_info(p1):
         continue
     if not print_player_info(p2):
