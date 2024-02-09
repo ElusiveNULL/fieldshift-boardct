@@ -34,7 +34,7 @@ class Facility:
 
 class Player:
     def __init__(self, name: str, player_id: int, ops: list[Operator],
-                 selected_op: Operator, facilities: list[Facility], cheated: bool):
+                 selected_op: Operator, artillery_facility: Facility, medbay_facility: Facility, command_center_facility: Facility, cheated: bool):
         self.crates = 1
         self.skill_delay = 5
         self.support_delay = 5
@@ -42,8 +42,13 @@ class Player:
         self.player_id = player_id
         self.ops = ops
         self.selected_op = selected_op
-        self.facilities = facilities
+        self.artillery = artillery_facility
+        self.medbay = medbay_facility
+        self.command_center = command_center_facility
         self.cheated = cheated
+
+    def getFacilityById(self, id: int):
+        return [self.artillery, self.medbay, self.command_center][id]
 
 
 class Battlefield:
@@ -76,8 +81,7 @@ def create_operators(player_num: int, is_reserve: bool):
 def create_player(player_name: str, player_id: int):
     operators = create_operators(player_id, False)
     operators.extend(create_operators(player_id, True))
-    facilities = [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0)]
-    return Player(player_name, player_id, operators, operators[0], facilities, False)
+    return Player(player_name, player_id, operators, operators[0], Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0), False)
 
 
 p1 = create_player("No name", 1)
@@ -156,22 +160,22 @@ def check_cooldowns():
     if current_player.skill_delay > 0:
         current_player.skill_delay -= 1
     if current_player.support_delay > 0:
-        current_player.support_delay -= current_player.facilities[2].allocated + 1
+        current_player.support_delay -= current_player.command_center.allocated + 1
         if current_player.support_delay < 0:
             current_player.support_delay = 0
-    if current_player.facilities[1].facility_aux > 0:  # If medbay heal cooldown has not completed
+    if current_player.medbay.facility_aux > 0:  # If medbay heal cooldown has not completed
         # If the medbay's crates + 1 are less than the cooldown
-        if current_player.facilities[1].allocated + 1 < current_player.facilities[1].facility_aux:
+        if current_player.medbay.allocated + 1 < current_player.medbay.facility_aux:
             # Subtract medbay cooldown by medbay crates + 1
-            current_player.facilities[1].facility_aux -= current_player.facilities[1].allocated + 1
-            if current_player.facilities[1].facility_aux < 0:
-                current_player.facilities[1].facility_aux = 0
+            current_player.medbay.facility_aux -= current_player.medbay.allocated + 1
+            if current_player.medbay.facility_aux < 0:
+                current_player.medbay.facility_aux = 0
         else:
-            current_player.facilities[1].facility_aux -= 1
+            current_player.medbay.facility_aux -= 1
     else:
         heal_amount = 2
-        if current_player.facilities[1].allocated > 3:
-            heal_amount += current_player.facilities[1].allocated - 3
+        if current_player.medbay.allocated > 3:
+            heal_amount += current_player.medbay.allocated - 3
         for op in current_player.ops:
             if op.reserve and op.hp < 5:
                 op.hp += heal_amount
@@ -194,9 +198,9 @@ def print_player_info(player: Player):
     else:
         print("[READY]")
     print("Crates: " + str(player.crates) +
-          "\nFacility Crates: " + str(player.facilities[0].allocated) +
-          "-" + str(player.facilities[1].allocated) +
-          "-" + str(player.facilities[2].allocated) +
+          "\nFacility Crates: " + str(player.artillery.allocated) +
+          "-" + str(player.medbay.allocated) +
+          "-" + str(player.command_center.allocated) +
           "\nReserve:", end=" ")
     for op in player.ops:
         if op.alive:
@@ -289,11 +293,13 @@ def parse_cmd(cmd):
 
         case 4:  # RNF - Reinforce
             current_player.crates -= 1
-            current_player.facilities[cmd_arg].allocated += 1
+            selected_facility = current_player.getFacilityById(cmd_arg)
+            selected_facility.allocated += 1
 
         case 5:  # WDR - Withdraw
             current_player.crates += 1
-            current_player.facilities[cmd_arg].allocated -= 1
+            selected_facility = current_player.getFacilityById(cmd_arg)
+            selected_facility.allocated -= 1
             should_switch = False
 
         case 6:  # RGP - Regroup
@@ -301,14 +307,14 @@ def parse_cmd(cmd):
             switch_reserve_status(rgp_target, False)
 
         case 9:  # SPT - Support
-            if current_player.facilities[0].facility_aux == 1:
-                current_player.support_delay = 5 - current_player.facilities[2].allocated
-                current_player.facilities[0].facility_aux = 0
+            if current_player.artillery.facility_aux == 1:
+                current_player.support_delay = 5 - current_player.command_center.allocated
+                current_player.artillery.facility_aux = 0
                 for op in board.contents[cmd_arg]:
                     if op.team == other_player.player_id:
-                        op.take_damage(current_player.facilities[0].allocated)
+                        op.take_damage(current_player.artillery.allocated)
             else:
-                selected_facility = current_player.facilities[cmd_arg]
+                selected_facility = current_player.getFacilityById(cmd_arg)
                 match cmd_arg:
                     case 0:
                         selected_facility.facility_aux = 1
