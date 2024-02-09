@@ -52,9 +52,9 @@ class Battlefield:
 
 # PREPARATIONS #
 p1 = Player("No name", 1, [], None,
-            [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, None)])
+            [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0)])
 p2 = Player("No name", 2, [], None,
-            [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, None)])
+            [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0)])
 
 
 def create_operators(player_num: int, is_reserve: bool):
