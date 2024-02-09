@@ -34,7 +34,8 @@ class Facility:
 
 class Player:
     def __init__(self, name: str, player_id: int, ops: list[Operator],
-                 selected_op: Operator, artillery_facility: Facility, medbay_facility: Facility, command_center_facility: Facility, cheated: bool):
+                 selected_op: Operator, artillery_facility: Facility, medbay_facility: Facility,
+                 command_center_facility: Facility, cheated: bool):
         self.crates = 1
         self.skill_delay = 5
         self.support_delay = 5
@@ -47,8 +48,8 @@ class Player:
         self.command_center = command_center_facility
         self.cheated = cheated
 
-    def getFacilityById(self, id: int):
-        return [self.artillery, self.medbay, self.command_center][id]
+    def get_facility_by_index(self, index: int):
+        return [self.artillery, self.medbay, self.command_center][index]
 
 
 class Battlefield:
@@ -81,7 +82,8 @@ def create_operators(player_num: int, is_reserve: bool):
 def create_player(player_name: str, player_id: int):
     operators = create_operators(player_id, False)
     operators.extend(create_operators(player_id, True))
-    return Player(player_name, player_id, operators, operators[0], Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0), False)
+    return Player(player_name, player_id, operators, operators[0], Facility("Artillery", 0, 0, 0),
+                  Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0), False)
 
 
 p1 = create_player("No name", 1)
@@ -293,12 +295,12 @@ def parse_cmd(cmd):
 
         case 4:  # RNF - Reinforce
             current_player.crates -= 1
-            selected_facility = current_player.getFacilityById(cmd_arg)
+            selected_facility = current_player.get_facility_by_index(cmd_arg)
             selected_facility.allocated += 1
 
         case 5:  # WDR - Withdraw
             current_player.crates += 1
-            selected_facility = current_player.getFacilityById(cmd_arg)
+            selected_facility = current_player.get_facility_by_index(cmd_arg)
             selected_facility.allocated -= 1
             should_switch = False
 
@@ -314,7 +316,7 @@ def parse_cmd(cmd):
                     if op.team == other_player.player_id:
                         op.take_damage(current_player.artillery.allocated)
             else:
-                selected_facility = current_player.getFacilityById(cmd_arg)
+                selected_facility = current_player.get_facility_by_index(cmd_arg)
                 match cmd_arg:
                     case 0:
                         selected_facility.facility_aux = 1
