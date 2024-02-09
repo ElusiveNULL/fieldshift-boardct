@@ -282,6 +282,8 @@ def parse_cmd(cmd):
             current_player.selected_op.location = cmd_arg
 
         case 3:  # HIT - Attack
+            if other_player.ops[cmd_arg].reserve:
+                current_player.cheated = True
             other_player.ops[cmd_arg].take_damage(check_range(
                 current_player.selected_op, other_player.ops[cmd_arg], False))
 
