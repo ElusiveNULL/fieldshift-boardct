@@ -102,19 +102,19 @@ p2.selected_op = p2.ops[0]
 
 
 # SUPPORTING FUNCTIONS #
-def switch_reserve_status(op: Operator):
-    if op.reserve:
-        op.reserve = False
+def switch_reserve_status(operator: Operator):
+    if operator.reserve:
+        operator.reserve = False
         if current_player == p1:
-            board.contents[0].append(op)
+            board.contents[0].append(operator)
             current_player.selected_op.location = 0
         else:
-            board.contents[9].append(op)
+            board.contents[9].append(operator)
             current_player.selected_op.location = 9
     else:
-        op.reserve = True
-        board.contents[op.location].remove(op)
-        if op == current_player.selected_op:
+        operator.reserve = True
+        board.contents[operator.location].remove(operator)
+        if operator == current_player.selected_op:
             for op in current_player.ops:
                 if op.alive and not op.reserve:
                     current_player.selected_op = op
@@ -175,38 +175,38 @@ def check_cooldowns():
                     op.hp = 5
 
 
-def print_player_info(pname: Player):
+def print_player_info(player: Player):
     global active_game
     deployed_ops = 0
-    print("[Player " + str(pname.player_id) + ": " + pname.name + "]" +
+    print("[Player " + str(player.player_id) + ": " + player.name + "]" +
           "\nSkill Cooldown:", end=" ")
-    if pname.skill_delay > 0:
-        print(str(pname.skill_delay), end="")
+    if player.skill_delay > 0:
+        print(str(player.skill_delay), end="")
     else:
         print("[READY]", end="")
     print("\nSupport Cooldown:", end=" ")
-    if pname.support_delay > 0:
-        print(str(pname.support_delay))
+    if player.support_delay > 0:
+        print(str(player.support_delay))
     else:
         print("[READY]")
-    print("Crates: " + str(pname.crates) +
-          "\nFacility Crates: " + str(pname.facilities[0].allocated) +
-          "-" + str(pname.facilities[1].allocated) +
-          "-" + str(pname.facilities[2].allocated) +
+    print("Crates: " + str(player.crates) +
+          "\nFacility Crates: " + str(player.facilities[0].allocated) +
+          "-" + str(player.facilities[1].allocated) +
+          "-" + str(player.facilities[2].allocated) +
           "\nReserve:", end=" ")
-    for op in pname.ops:
+    for op in player.ops:
         if op.alive:
             if op.reserve:
                 if op.hp < 5:
-                    print(str(pname.ops.index(op)) + "v" + str(op.hp), end=" ")
+                    print(str(player.ops.index(op)) + "v" + str(op.hp), end=" ")
                 else:
-                    print(str(pname.ops.index(op)), end=" ")
+                    print(str(player.ops.index(op)), end=" ")
             else:
                 deployed_ops += 1
     if deployed_ops == 0:
         print("")
         system("cls||clear")
-        print("Player " + str(pname.player_id)
+        print("Player " + str(player.player_id)
               + ": Game over - All deployed operators eliminated.\n[PLAYER " +
               str(other_player.player_id) + " VICTORY]\n")
         active_game = False
