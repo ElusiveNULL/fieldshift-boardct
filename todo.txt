@@ -3,5 +3,6 @@ Add OVW instruction
 Add SKL instruction
   - Most complex instruction by far
 Add input type handling
+Add suspend and resume functionality
 Add support for STDEX and STDEX Type-A rulesets
   - Not sure how to go about implementing this
