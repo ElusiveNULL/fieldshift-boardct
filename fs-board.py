@@ -244,12 +244,6 @@ def parse_cmd(cmd):
     match int(cmd[0]):
         case 0:  # AUX - Auxiliary
             match cmd_arg:
-                case 3:  # Concede
-                    print("Player " + str(current_player.player_id)
-                          + ": Concede\n[PLAYER " + str(
-                        other_player.player_id) + " VICTORY]")
-                    input("Press Enter to continue...")
-                    return False
                 case 6:  # Dispute
                     if other_player.cheated:
                         print("Player " + str(other_player.player_id)
@@ -269,6 +263,12 @@ def parse_cmd(cmd):
                         input("Press Enter to continue...")
                         return False
                     should_switch = False
+                case 9:  # Concede
+                    print("Player " + str(current_player.player_id)
+                          + ": Concede\n[PLAYER " + str(
+                        other_player.player_id) + " VICTORY]")
+                    input("Press Enter to continue...")
+                    return False
 
         case 1:  # SWC - Switch
             current_player.selected_op = current_player.ops[cmd_arg]
