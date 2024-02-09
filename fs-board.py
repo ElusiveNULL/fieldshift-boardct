@@ -7,7 +7,7 @@ class Operator:
     atk = 4
     max_hp = 5
 
-    def __init__(self, hp, op_id, job, team, reserve, location: int, alive):
+    def __init__(self, hp: int, op_id: str, job: str, team: int, reserve: bool, location: int, alive: bool):
         self.hp = hp
         self.op_id = op_id
         self.job = job
@@ -16,7 +16,7 @@ class Operator:
         self.location = location
         self.alive = alive
 
-    def take_damage(self, dmg_amount):
+    def take_damage(self, dmg_amount: int):
         self.hp -= dmg_amount
         if self.hp < 1:
             self.alive = False
@@ -24,8 +24,16 @@ class Operator:
             board.contents[self.location].remove(self)
 
 
+class Facility:
+    def __init__(self, job: str, allocated: int, facility_id: int, facility_aux: int):
+        self.job = job
+        self.allocated = allocated
+        self.facility_id = facility_id
+        self.facility_aux = facility_aux
+
+
 class Player:
-    def __init__(self, name, player_id, ops, selected_op, facilities):
+    def __init__(self, name: str, player_id: int, ops: list[Operator], selected_op: Operator, facilities: list[Facility]):
         self.crates = 1
         self.skill_delay = 5
         self.support_delay = 5
@@ -37,17 +45,9 @@ class Player:
 
 
 class Battlefield:
-    def __init__(self, contents, terrain):
+    def __init__(self, contents: list[list[Operator]], terrain: list[str]):
         self.contents = contents
         self.terrain = terrain
-
-
-class Facility:
-    def __init__(self, job, allocated, facility_id, facility_aux):
-        self.job = job
-        self.allocated = allocated
-        self.facility_id = facility_id
-        self.facility_aux = facility_aux
 
 
 # PREPARATIONS #
@@ -57,7 +57,7 @@ p2 = Player("No name", 2, [], None,
             [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, None)])
 
 
-def create_operators(player_num, is_reserve: bool):
+def create_operators(player_num: int, is_reserve: bool):
     jobs = ["Longwatch", "Technician", "Blade", "Medic", "Specialist"]
     id_list = list(range(10))
     if is_reserve:
@@ -67,7 +67,7 @@ def create_operators(player_num, is_reserve: bool):
     if player_num == 2:
         starting_sector = 9
         player_char = '-'
-    temp, result = [], []
+    temp, result = list[str](), list[Operator]()
     for op_id in id_list:
         temp.append(player_char + str(op_id))
     id_list = temp
@@ -102,7 +102,7 @@ p2.selected_op = p2.ops[0]
 
 
 # SUPPORTING FUNCTIONS #
-def switch_reserve_status(op):
+def switch_reserve_status(op: Operator):
     if op.reserve:
         op.reserve = False
         if current_player == p1:
@@ -121,7 +121,7 @@ def switch_reserve_status(op):
                     break
 
 
-def check_range(attacker, target):
+def check_range(attacker: Operator, target: Operator):
     net_range = 3
     net_damage = attacker.atk
     if attacker.job == "Longwatch":
@@ -175,7 +175,7 @@ def check_cooldowns():
                     op.hp = 5
 
 
-def print_player_info(pname):
+def print_player_info(pname: Player):
     global active_game
     deployed_ops = 0
     print("[Player " + str(pname.player_id) + ": " + pname.name + "]" +
