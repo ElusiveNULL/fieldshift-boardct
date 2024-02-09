@@ -51,10 +51,15 @@ class Battlefield:
 
 
 # PREPARATIONS #
-p1 = Player("No name", 1, [], None,
-            [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0)])
-p2 = Player("No name", 2, [], None,
-            [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0)])
+def create_player(player_name: str, player_id: int):
+    operators = create_operators(player_id, False)
+    operators.extend(create_operators(player_id, True))
+    facilities = [Facility("Artillery", 0, 0, 0), Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0)]
+    return Player(player_name, player_id, operators, operators[0], facilities)
+
+
+p1 = create_player("No name", 1)
+p2 = create_player("No name", 2)
 
 
 def create_operators(player_num: int, is_reserve: bool):
@@ -77,9 +82,6 @@ def create_operators(player_num: int, is_reserve: bool):
     return result
 
 
-p1.ops = create_operators(1, False)
-p2.ops = create_operators(2, False)
-
 board = Battlefield([], [])
 
 
@@ -92,13 +94,9 @@ def create_sectors():
 
 
 create_sectors()
-board.contents[0].extend(p1.ops)
-board.contents[9].extend(p2.ops)
-p1.ops.extend(create_operators(1, True))
-p2.ops.extend(create_operators(2, True))
-
-p1.selected_op = p1.ops[0]
-p2.selected_op = p2.ops[0]
+# First 5 operators are not in reserve
+board.contents[0].extend(p1.ops[:5])
+board.contents[9].extend(p2.ops[:5])
 
 
 # SUPPORTING FUNCTIONS #
