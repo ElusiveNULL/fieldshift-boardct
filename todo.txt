@@ -1,7 +1,10 @@
-Add OVW instruction
-  - Would be difficult to optimize
+Add OVW instruction (Assigned to JJ-Shep)
 Add SKL instruction
-  - Most complex instruction by far
+    - Add Longwatch skill
+    - Add Blade skill
+    - Add Technician skill
+    - Add Medic skill
+    - Add Specialist skill
 Add suspend and resume functionality
 Add support for STDEX and STDEX Type-A rulesets
   - Not sure how to go about implementing this
