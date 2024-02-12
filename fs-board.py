@@ -82,6 +82,7 @@ def create_operators(player_num: int, is_reserve: bool):
 def create_player(player_name: str, player_id: int):
     operators = create_operators(player_id, False)
     operators.extend(create_operators(player_id, True))
+    # Overwatch operator assigned to first operator not on the field to avoid the variable ever being empty
     return Player(player_name, player_id, operators, operators[0], Facility("Artillery", 0, 0, 0),
                   Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0), False)
 
@@ -108,6 +109,8 @@ board.contents[9].extend(p2.ops[:5])
 current_player = p1
 other_player = p2
 active_game = True
+overwatch = False
+overwatch_operator = current_player.ops[5]
 
 
 # SUPPORTING FUNCTIONS #
@@ -185,8 +188,17 @@ def check_cooldowns():
                     op.hp = 5
 
 
+def check_overwatch():
+    if overwatch and overwatch_operator.team == other_player.player_id:
+        attack_check = check_range(overwatch_operator, current_player.selected_op, True)
+        if (not overwatch_operator.reserve and overwatch_operator.alive) and \
+                attack_check > 0:
+            current_player.selected_op.take_damage(attack_check)
+            return True
+    return False
+
+
 def print_player_info(player: Player):
-    global active_game
     deployed_ops = 0
     print("[Player " + str(player.player_id) + ": " + player.name + "]" +
           "\nSkill Cooldown:", end=" ")
@@ -231,7 +243,10 @@ def print_board():
             print(op.op_id, end="")
             if op.hp < 5:
                 print("v" + str(op.hp), end="")
-            print(end=" ")
+            print(end="")
+            if overwatch and op == overwatch_operator:
+                print("W", end="")
+            print("",end=" ")
         print("")
     print("\n")
 
@@ -242,9 +257,10 @@ def validate_command(command: str):
 
 
 def parse_command(command):
-    global active_game
     global current_player
     global other_player
+    global overwatch
+    global overwatch_operator
     current_player.cheated = False
     cmd_arg = int(command[1])
     should_switch = True
@@ -288,9 +304,12 @@ def parse_command(command):
             should_switch = False
 
         case 2:  # MOV - Move
+            ovw_attacked = check_overwatch()
             board.contents[current_player.selected_op.location].remove(current_player.selected_op)
             board.contents[cmd_arg].append(current_player.selected_op)
             current_player.selected_op.location = cmd_arg
+            if not ovw_attacked:
+                check_overwatch()
 
         case 3:  # HIT - Attack
             if other_player.ops[cmd_arg].reserve:
@@ -312,6 +331,10 @@ def parse_command(command):
         case 6:  # RGP - Regroup
             rgp_target = current_player.ops[cmd_arg]
             switch_reserve_status(rgp_target, False)
+
+        case 7:  # OVW - Overwatch
+            overwatch = True
+            overwatch_operator = current_player.ops[cmd_arg]
 
         case 9:  # SPT - Support
             if current_player.artillery.facility_aux == 1:
@@ -339,6 +362,14 @@ def parse_command(command):
 
         case _:
             should_switch = False
+    # Reset overwatch by changing overwatch operator to a reserve or dead operator
+    if overwatch and overwatch_operator.team == other_player.player_id:
+        overwatch = False
+        for operator in other_player.ops:
+            if operator.reserve or not operator.alive:
+                other_player.reserve_operator = operator
+                break
+
     check_cooldowns()
     if should_switch:
         if current_player == p1:
