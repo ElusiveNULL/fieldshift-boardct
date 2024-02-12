@@ -22,6 +22,10 @@ class Operator:
             self.alive = False
             self.reserve = True
             board.contents[self.location].remove(self)
+            for op in current_player.ops:
+                if op.alive and not op.reserve:
+                    current_player.selected_op = op
+                    break
 
 
 class Facility:
@@ -227,7 +231,7 @@ def print_player_info(player: Player):
                 deployed_ops += 1
     if deployed_ops == 0:
         print("")
-        print("Player " + str(player.player_id)
+        print("\nPlayer " + str(player.player_id)
               + ": Game over - All deployed operators eliminated.\n[PLAYER " +
               str(other_player.player_id) + " VICTORY]\n")
         input("Press Enter to continue...")
@@ -246,7 +250,7 @@ def print_board():
             print(end="")
             if overwatch and op == overwatch_operator:
                 print("W", end="")
-            print("",end=" ")
+            print("", end=" ")
         print("")
     print("\n")
 
@@ -261,6 +265,7 @@ def parse_command(command):
     global other_player
     global overwatch
     global overwatch_operator
+    global active_game
     current_player.cheated = False
     cmd_arg = int(command[1])
     should_switch = True
@@ -275,7 +280,7 @@ def parse_command(command):
                     should_switch = False
                 case 6:  # Dispute
                     if other_player.cheated:
-                        print("Player " + str(other_player.player_id)
+                        print("\nPlayer " + str(other_player.player_id)
                               + ": Game over - Called out for rule breakage\n[PLAYER " + str(
                             other_player.player_id) + " VICTORY]")
                         input("Press Enter to continue...")
@@ -293,7 +298,7 @@ def parse_command(command):
                         return False
                     should_switch = False
                 case 9:  # Concede
-                    print("Player " + str(current_player.player_id)
+                    print("\nPlayer " + str(current_player.player_id)
                           + ": Concede\n[PLAYER " + str(
                         other_player.player_id) + " VICTORY]")
                     input("Press Enter to continue...")
@@ -304,12 +309,14 @@ def parse_command(command):
             should_switch = False
 
         case 2:  # MOV - Move
+            current_selection = current_player.selected_op
             ovw_attacked = check_overwatch()
-            board.contents[current_player.selected_op.location].remove(current_player.selected_op)
-            board.contents[cmd_arg].append(current_player.selected_op)
-            current_player.selected_op.location = cmd_arg
-            if not ovw_attacked:
-                check_overwatch()
+            if current_selection.alive:
+                board.contents[current_player.selected_op.location].remove(current_player.selected_op)
+                board.contents[cmd_arg].append(current_player.selected_op)
+                current_player.selected_op.location = cmd_arg
+                if not ovw_attacked:
+                    check_overwatch()
 
         case 3:  # HIT - Attack
             if other_player.ops[cmd_arg].reserve:
@@ -367,7 +374,7 @@ def parse_command(command):
         overwatch = False
         for operator in other_player.ops:
             if operator.reserve or not operator.alive:
-                other_player.reserve_operator = operator
+                overwatch_operator = operator
                 break
 
     check_cooldowns()
@@ -400,7 +407,7 @@ while active_game:
     # Print updated info
     system("clear||cls")
     if not print_player_info(p1):
-        continue
+        break
     if not print_player_info(p2):
-        continue
+        break
     print_board()
