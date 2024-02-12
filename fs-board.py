@@ -1,6 +1,11 @@
 #!/bin/env python3
-from os import system
+import os
 import sys
+
+
+if os.name == "nt":
+    # Enable ANSI in Windows
+    os.system("")
 
 
 # CLASS DEFINITIONS #
@@ -125,6 +130,10 @@ else:
 
 
 # SUPPORTING FUNCTIONS #
+def clear_terminal():
+    print("\x1b[2J\x1b[3J\x1b[H", end="")
+
+
 def read_input_stream(prompt: str):
     global is_in_playback, input_stream
     line = ""
@@ -310,10 +319,10 @@ def parse_command(command):
                         input("Press Enter to continue...")
                         return False
                 case 8:
-                    system("clear||cls")
+                    clear_terminal()
                     print("Player " + str(current_player.player_id) + ": Request draw")
                     if input("Player " + str(other_player.player_id) + " response: ") == "01":
-                        system("clear||cls")
+                        clear_terminal()
                         print_player_info(p1)
                         print_player_info(p2)
                         print_board()
@@ -411,10 +420,10 @@ def parse_command(command):
 
 
 # MAIN #
-system("clear||cls")
+clear_terminal()
 p1.name = read_input_stream("Enter name of Player 1: ")
 p2.name = read_input_stream("Enter name of Player 2: ")
-system("clear||cls")
+clear_terminal()
 print_player_info(p1)
 print_player_info(p2)
 print_board()
@@ -429,7 +438,7 @@ while active_game:
         break
 
     # Print updated info
-    system("clear||cls")
+    clear_terminal()
     if not print_player_info(p1):
         break
     if not print_player_info(p2):
