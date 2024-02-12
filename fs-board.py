@@ -2,6 +2,7 @@
 from os import system
 import sys
 
+
 # CLASS DEFINITIONS #
 class Operator:
     atk = 4
@@ -121,6 +122,7 @@ if (is_in_playback):
     input_stream = open(sys.argv[1])
 else:
     input_stream = sys.stdin
+
 
 # SUPPORTING FUNCTIONS #
 def read_input_stream(prompt: str):
@@ -418,7 +420,7 @@ print_player_info(p2)
 print_board()
 while active_game:
     cmd = read_input_stream("Player " + str(current_player.player_id) +
-                " (" + current_player.selected_op.op_id + "): ")
+                            " (" + current_player.selected_op.op_id + "): ")
 
     if not validate_command(cmd):
         print("'" + cmd + "' is not a valid command.")
