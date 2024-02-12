@@ -5,5 +5,7 @@ Add SKL instruction
     - Add Medic skill
     - Add Specialist skill
 Add suspend and resume functionality
+    - Add ability to playback input from a file (assigned to fp-58)
+    - Add ability to save current game to a file for future playback
 Add support for STDEX and STDEX Type-A rulesets
   - Not sure how to go about implementing this
