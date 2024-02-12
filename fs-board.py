@@ -236,23 +236,23 @@ def print_board():
     print("\n")
 
 
-def validate_cmd(cmd: str):
+def validate_command(command: str):
     # May need to update this for different rulesets in the future
-    return len(cmd) == 2 and cmd.isdecimal()
+    return len(command) == 2 and command.isdecimal()
 
 
-def parse_cmd(cmd):
+def parse_command(command):
     global active_game
     global current_player
     global other_player
     current_player.cheated = False
-    cmd_arg = int(cmd[1])
+    cmd_arg = int(command[1])
     should_switch = True
     if current_player == p1:
         other_player = p2
     else:
         other_player = p1
-    match int(cmd[0]):
+    match int(command[0]):
         case 0:  # AUX - Auxiliary
             match cmd_arg:
                 case 0 | 1 | 4 | 7:
@@ -360,10 +360,10 @@ while active_game:
     cmd = input("Player " + str(current_player.player_id) +
                 " (" + current_player.selected_op.op_id + "): ")
 
-    if not validate_cmd(cmd):
+    if not validate_command(cmd):
         print("'" + cmd + "' is not a valid command.")
         continue
-    if not parse_cmd(cmd):
+    if not parse_command(cmd):
         break
 
     # Print updated info
