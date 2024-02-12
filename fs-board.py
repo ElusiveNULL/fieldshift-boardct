@@ -1,6 +1,6 @@
 #!/bin/env python3
 from os import system
-
+import sys
 
 # CLASS DEFINITIONS #
 class Operator:
@@ -116,8 +116,30 @@ active_game = True
 overwatch = False
 overwatch_operator = current_player.ops[5]
 
+is_in_playback = len(sys.argv) > 1
+if (is_in_playback):
+    input_stream = open(sys.argv[1])
+else:
+    input_stream = sys.stdin
 
 # SUPPORTING FUNCTIONS #
+def read_input_stream(prompt: str):
+    global is_in_playback, input_stream
+    line = ""
+    if (is_in_playback):
+        line = input_stream.readline().rstrip()
+        # May need to change this for different rulesets
+        if len(line) >= 2:
+            return line
+        else:
+            is_in_playback = False
+            input_stream = sys.stdin
+
+    print(prompt, end=line, flush=True)
+    line += input_stream.readline().rstrip()
+    return line
+
+
 def switch_reserve_status(operator: Operator, is_support: bool):
     if operator.reserve:
         if not is_support:
@@ -388,14 +410,14 @@ def parse_command(command):
 
 # MAIN #
 system("clear||cls")
-p1.name = input("Enter name of Player 1: ")
-p2.name = input("Enter name of Player 2: ")
+p1.name = read_input_stream("Enter name of Player 1: ")
+p2.name = read_input_stream("Enter name of Player 2: ")
 system("clear||cls")
 print_player_info(p1)
 print_player_info(p2)
 print_board()
 while active_game:
-    cmd = input("Player " + str(current_player.player_id) +
+    cmd = read_input_stream("Player " + str(current_player.player_id) +
                 " (" + current_player.selected_op.op_id + "): ")
 
     if not validate_command(cmd):
