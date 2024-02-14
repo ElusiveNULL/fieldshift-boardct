@@ -59,6 +59,8 @@ class Player:
         self.cheated = cheated
 
     def get_facility_by_index(self, index: int):
+        if index > 2:
+            return self.artillery
         return [self.artillery, self.medbay, self.command_center][index]
 
 
@@ -324,7 +326,7 @@ def parse_command(command):
                             other_player.player_id) + " VICTORY]\n")
                         input("Press Enter to continue...")
                         return False
-                case 8:
+                case 8:  # Request Draw
                     clear_terminal()
                     print("Player " + str(current_player.player_id) + ": Request draw")
                     if input("Player " + str(other_player.player_id) + " response: ") == "01":
@@ -388,7 +390,7 @@ def parse_command(command):
                 current_player.artillery.facility_aux = 0
                 for op in board.contents[cmd_arg]:
                     if op.team == other_player.player_id:
-                        op.take_damage(current_player.artillery.allocated)
+                        op.take_damage(current_player.artillery.allocated + 1)
             else:
                 selected_facility = current_player.get_facility_by_index(cmd_arg)
                 match cmd_arg:
