@@ -121,6 +121,7 @@ other_player = p2
 active_game = True
 overwatch = False
 overwatch_operator = current_player.ops[5]
+game_log = ""
 
 # Resume game from argument
 is_in_playback = len(sys.argv) > 1
@@ -296,6 +297,8 @@ def validate_command(command: str):
 
 def parse_command(command):
     global current_player, other_player, overwatch, overwatch_operator, active_game, game_log
+    if not command == "02" and not command == "03":
+        game_log += command + "\n"
     current_player.cheated = False
     cmd_arg = int(command[1])
     should_switch = True
@@ -308,6 +311,12 @@ def parse_command(command):
             match cmd_arg:
                 case 0 | 1 | 4 | 7:
                     should_switch = False
+                case 2:  # Suspend
+                    save_title = "fs_save_" + input("Enter save name: ")
+                    save_file = open(save_title, "w")
+                    save_file.write(game_log)
+                    return False
+
                 case 6:  # Dispute
                     if other_player.cheated:
                         print("\nPlayer " + str(other_player.player_id)
@@ -417,27 +426,33 @@ def parse_command(command):
 
 
 # MAIN #
-clear_terminal()
-p1.name = read_input_stream("Enter name of Player 1: ")
-p2.name = read_input_stream("Enter name of Player 2: ")
-clear_terminal()
-print_player_info(p1)
-print_player_info(p2)
-print_board()
-while active_game:
-    cmd = read_input_stream("Player " + str(current_player.player_id) +
-                            " (" + current_player.selected_op.op_id + "): ")
-
-    if not validate_command(cmd):
-        print("'" + cmd + "' is not a valid command.")
-        continue
-    if not parse_command(cmd):
-        break
-
-    # Print updated info
+def start_game():
+    global game_log
     clear_terminal()
-    if not print_player_info(p1):
-        break
-    if not print_player_info(p2):
-        break
+    p1.name = read_input_stream("Enter name of Player 1: ")
+    p2.name = read_input_stream("Enter name of Player 2: ")
+    clear_terminal()
+    game_log += p1.name + "\n" + p2.name + "\n"
+    print_player_info(p1)
+    print_player_info(p2)
     print_board()
+    while active_game:
+        cmd = read_input_stream("Player " + str(current_player.player_id) +
+                                " (" + current_player.selected_op.op_id + "): ")
+
+        if not validate_command(cmd):
+            print("'" + cmd + "' is not a valid command.")
+            continue
+        if not parse_command(cmd):
+            break
+
+        # Print updated info
+        clear_terminal()
+        if not print_player_info(p1):
+            break
+        if not print_player_info(p2):
+            break
+        print_board()
+
+
+start_game()
