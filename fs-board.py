@@ -146,13 +146,28 @@ def clear_terminal():
     print("\x1b[2J\x1b[3J\x1b[H", end="")
 
 
-def read_input_stream(prompt: str):
+def read_command_input(prompt: str):
     line = ""
     if current_game.is_in_playback:
         line = current_game.input_stream.readline().rstrip()
         # May need to change this for different rulesets
         if len(line) >= 2:
             return line
+        else:
+            current_game.is_in_playback = False
+            current_game.input_stream = sys.stdin
+
+    print(prompt, end=line, flush=True)
+    line += current_game.input_stream.readline().rstrip()
+    return line
+
+
+def read_line_input(prompt: str):
+    line = ""
+    if current_game.is_in_playback:
+        line = current_game.input_stream.readline()
+        if line.endswith("\n"):
+            return line.rstrip()
         else:
             current_game.is_in_playback = False
             current_game.input_stream = sys.stdin
@@ -354,8 +369,8 @@ def parse_command(command):
                     else:
                         current_game = Game(True, open(save_name))
                         input("Loaded save file\nPress Enter to continue...")
-                        current_game.p1.name = read_input_stream("Enter name of Player 1: ")
-                        current_game.p2.name = read_input_stream("Enter name of Player 2: ")
+                        current_game.p1.name = read_line_input("Enter name of Player 1: ")
+                        current_game.p2.name = read_line_input("Enter name of Player 2: ")
                     return True
                 case 6:  # Dispute
                     if current_game.other_player.cheated:
@@ -473,16 +488,16 @@ def parse_command(command):
 
 # MAIN #
 clear_terminal()
-current_game.p1.name = read_input_stream("Enter name of Player 1: ")
-current_game.p2.name = read_input_stream("Enter name of Player 2: ")
+current_game.p1.name = read_line_input("Enter name of Player 1: ")
+current_game.p2.name = read_line_input("Enter name of Player 2: ")
 clear_terminal()
 current_game.game_log += current_game.p1.name + "\n" + current_game.p2.name + "\n"
 print_player_info(current_game.p1)
 print_player_info(current_game.p2)
 print_board()
 while not current_game.is_finished:
-    cmd = read_input_stream("Player " + str(current_game.current_player.player_id) +
-                            " (" + current_game.current_player.selected_op.op_id + "): ")
+    cmd = read_command_input("Player " + str(current_game.current_player.player_id) +
+                             " (" + current_game.current_player.selected_op.op_id + "): ")
 
     if not validate_command(cmd):
         print("'" + cmd + "' is not a valid command.")
