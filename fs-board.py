@@ -13,20 +13,21 @@ class Operator:
     atk = 4
     max_hp = 5
 
-    def __init__(self, hp: int, op_id: str, job: str, team: int, reserve: bool, location: int, alive: bool):
+    def __init__(self, hp: int, op_id: str, team: int, reserve: bool, location: int, alive: bool, skill_active: bool):
         self.hp = hp
         self.op_id = op_id
-        self.job = job
         self.team = team
         self.reserve = reserve
         self.location = location
         self.alive = alive
+        self.skill_active = skill_active
 
     def take_damage(self, dmg_amount: int):
         self.hp -= dmg_amount
         if self.hp < 1:
             self.alive = False
             self.reserve = True
+            self.skill_active = False
             board.contents[self.location].remove(self)
             for op in current_player.ops:
                 if op.alive and not op.reserve:
@@ -71,7 +72,6 @@ class Battlefield:
 
 
 def create_operators(player_num: int, is_reserve: bool):
-    jobs = ["Longwatch", "Technician", "Blade", "Medic", "Specialist"]
     id_list = list(range(10))
     if is_reserve:
         id_list = id_list[4:]
@@ -86,7 +86,7 @@ def create_operators(player_num: int, is_reserve: bool):
     id_list = temp
     result = []
     for i in range(5):
-        result.append(Operator(5, id_list[i], jobs[i], player_num, is_reserve, starting_sector, True))
+        result.append(Operator(5, id_list[i], player_num, is_reserve, starting_sector, True, False))
     return result
 
 
@@ -178,10 +178,10 @@ def switch_reserve_status(operator: Operator, is_support: bool):
                     break
 
 
-def check_range(attacker: Operator, target: Operator, automatic: bool):
+def check_range(attacker: Operator, target: Operator, automatic: bool, longshot: bool):
     net_range = 3
     net_damage = attacker.atk
-    if attacker.job == "Longwatch":
+    if attacker.op_id[1] == ("0" or "5"):
         net_range = 5
     match target.location:
         case 0 | 9:
@@ -193,10 +193,14 @@ def check_range(attacker: Operator, target: Operator, automatic: bool):
             net_damage += 1
     if attacker.location == 4 or attacker.location == 5:
         net_damage += 1
-    if attacker.job == "Blade":
+    if attacker.op_id[1] == ("1" or "6"):
         net_range = 0
+    if longshot:
+        net_range = 9
+        net_damage = 7
     if net_range < abs(attacker.location - target.location):
-        if automatic:  # If check_range was executed due to an automatic attack, will not mark out of range as cheating
+        if automatic:
+            # If check_range was executed due to an automatic attack, will not mark out of range as cheating
             return 0
         current_player.cheated = True
     return net_damage
@@ -230,13 +234,24 @@ def check_cooldowns():
 
 
 def check_overwatch():
+    global overwatch, overwatch_operator
+    operator = current_player.ops[0]
+    if other_player.ops[0].skill_active:
+        operator = other_player.ops[0]
+    elif other_player.ops[5].skill_active:
+        operator = other_player.ops[5]
+    if operator.team == other_player.player_id:
+        current_player.selected_op.take_damage(check_range(operator, current_player.selected_op, True, True))
+        operator.skill_active = False
     if overwatch and overwatch_operator.team == other_player.player_id:
-        attack_check = check_range(overwatch_operator, current_player.selected_op, True)
+        attack_check = check_range(overwatch_operator, current_player.selected_op, True, False)
         if (not overwatch_operator.reserve and overwatch_operator.alive) and \
                 attack_check > 0:
             current_player.selected_op.take_damage(attack_check)
-            return True
-    return False
+            overwatch = False
+            for operator in other_player.ops:
+                if operator.reserve or not operator.alive:
+                    overwatch_operator = operator
 
 
 def print_player_info(player: Player):
@@ -287,6 +302,8 @@ def print_board():
             print(end="")
             if overwatch and op == overwatch_operator:
                 print("W", end="")
+            if op.skill_active:
+                print("S", end="")
             print("", end=" ")
         print("")
     print("\n")
@@ -350,20 +367,19 @@ def parse_command(command):
             should_switch = False
 
         case 2:  # MOV - Move
-            current_selection = current_player.selected_op
-            ovw_attacked = check_overwatch()
-            if current_selection.alive:
+            to_move = current_player.selected_op
+            check_overwatch()
+            if to_move == current_player.selected_op:
                 board.contents[current_player.selected_op.location].remove(current_player.selected_op)
                 board.contents[cmd_arg].append(current_player.selected_op)
                 current_player.selected_op.location = cmd_arg
-                if not ovw_attacked:
-                    check_overwatch()
+                check_overwatch()
 
         case 3:  # HIT - Attack
             if other_player.ops[cmd_arg].reserve:
                 current_player.cheated = True
             other_player.ops[cmd_arg].take_damage(check_range(
-                current_player.selected_op, other_player.ops[cmd_arg], False))
+                current_player.selected_op, other_player.ops[cmd_arg], False, False))
 
         case 4:  # RNF - Reinforce
             current_player.crates -= 1
@@ -383,6 +399,11 @@ def parse_command(command):
         case 7:  # OVW - Overwatch
             overwatch = True
             overwatch_operator = current_player.ops[cmd_arg]
+
+        case 8:  # SKL - Skill
+            match cmd_arg:
+                case 0 | 5:  # Longwatch
+                    current_player.ops[cmd_arg].skill_active = True
 
         case 9:  # SPT - Support
             if current_player.artillery.facility_aux == 1:
