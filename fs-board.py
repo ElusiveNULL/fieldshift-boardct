@@ -13,6 +13,7 @@ if os.name == "nt":
 class Game:
     def __init__(self, is_in_playback: bool, input_stream: TextIO):
         self.is_finished = False
+        self.game_log = ""
 
         self.is_in_playback = is_in_playback
         self.input_stream = input_stream
@@ -132,8 +133,6 @@ def create_sectors(board: Battlefield):
     for i in range(10):
         board.contents.append(list())
 
-
-game_log = ""
 
 # Resume game from argument
 if len(sys.argv) > 1:
@@ -322,9 +321,9 @@ def validate_command(command: str):
 
 
 def parse_command(command):
-    global current_game, game_log
+    global current_game
     if not command == "02" and not command == "03":
-        game_log += command + "\n"
+        current_game.game_log += command + "\n"
     current_game.current_player.cheated = False
     cmd_arg = int(command[1])
     should_switch = True
@@ -340,7 +339,7 @@ def parse_command(command):
                 case 2:  # Suspend
                     save_title = "fs_save_" + input("Enter save name: ")
                     save_file = open(save_title, "w")
-                    save_file.write(game_log)
+                    save_file.write(current_game.game_log)
                     return False
                 case 3:  # Resume suspended game
                     save_name = "fs_save_" + input("Enter the name of the save file: fs_save_")
@@ -471,7 +470,7 @@ clear_terminal()
 current_game.p1.name = read_input_stream("Enter name of Player 1: ")
 current_game.p2.name = read_input_stream("Enter name of Player 2: ")
 clear_terminal()
-game_log += current_game.p1.name + "\n" + current_game.p2.name + "\n"
+current_game.game_log += current_game.p1.name + "\n" + current_game.p2.name + "\n"
 print_player_info(current_game.p1)
 print_player_info(current_game.p2)
 print_board()
