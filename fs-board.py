@@ -122,8 +122,9 @@ active_game = True
 overwatch = False
 overwatch_operator = current_player.ops[5]
 
+# Resume game from argument
 is_in_playback = len(sys.argv) > 1
-if (is_in_playback):
+if is_in_playback:
     input_stream = open(sys.argv[1])
 else:
     input_stream = sys.stdin
@@ -137,7 +138,7 @@ def clear_terminal():
 def read_input_stream(prompt: str):
     global is_in_playback, input_stream
     line = ""
-    if (is_in_playback):
+    if is_in_playback:
         line = input_stream.readline().rstrip()
         # May need to change this for different rulesets
         if len(line) >= 2:
@@ -294,11 +295,7 @@ def validate_command(command: str):
 
 
 def parse_command(command):
-    global current_player
-    global other_player
-    global overwatch
-    global overwatch_operator
-    global active_game
+    global current_player, other_player, overwatch, overwatch_operator, active_game, game_log
     current_player.cheated = False
     cmd_arg = int(command[1])
     should_switch = True
@@ -315,7 +312,7 @@ def parse_command(command):
                     if other_player.cheated:
                         print("\nPlayer " + str(other_player.player_id)
                               + ": Game over - Called out for rule breakage\n[PLAYER " + str(
-                            other_player.player_id) + " VICTORY]")
+                            other_player.player_id) + " VICTORY]\n")
                         input("Press Enter to continue...")
                         return False
                 case 8:
@@ -333,7 +330,7 @@ def parse_command(command):
                 case 9:  # Concede
                     print("\nPlayer " + str(current_player.player_id)
                           + ": Concede\n[PLAYER " + str(
-                        other_player.player_id) + " VICTORY]")
+                        other_player.player_id) + " VICTORY]\n")
                     input("Press Enter to continue...")
                     return False
 
