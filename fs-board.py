@@ -247,10 +247,14 @@ def check_overwatch():
     elif current_game.other_player.ops[5].skill_active:
         operator = current_game.other_player.ops[5]
     if operator.team == current_game.other_player.player_id:
-        current_game.current_player.selected_op.take_damage(check_range(operator, current_game.current_player.selected_op, True, True))
+        current_game.current_player.selected_op.take_damage(
+            check_range(operator, current_game.current_player.selected_op, True, True)
+        )
         operator.skill_active = False
     if current_game.overwatch_state and current_game.overwatch_operator.team == current_game.other_player.player_id:
-        attack_check = check_range(current_game.overwatch_operator, current_game.current_player.selected_op, True, False)
+        attack_check = check_range(
+            current_game.overwatch_operator, current_game.current_player.selected_op, True, False
+        )
         if (not current_game.overwatch_operator.reserve and current_game.overwatch_operator.alive) and \
                 attack_check > 0:
             current_game.current_player.selected_op.take_damage(attack_check)
@@ -387,7 +391,9 @@ def parse_command(command):
             to_move = current_game.current_player.selected_op
             check_overwatch()
             if to_move == current_game.current_player.selected_op:
-                current_game.board.contents[current_game.current_player.selected_op.location].remove(current_game.current_player.selected_op)
+                current_game.board.contents[current_game.current_player.selected_op.location].remove(
+                    current_game.current_player.selected_op
+                )
                 current_game.board.contents[cmd_arg].append(current_game.current_player.selected_op)
                 current_game.current_player.selected_op.location = cmd_arg
                 check_overwatch()
@@ -491,4 +497,3 @@ while not current_game.is_finished:
     if not print_player_info(current_game.p2):
         break
     print_board()
-
