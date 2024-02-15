@@ -29,6 +29,7 @@ class Game:
         self.p1 = p1
         self.p2 = p2
         self.board = board
+        self.ops_bleeding_out = list()
         self.current_player = p1
         self.other_player = p2
 
@@ -40,7 +41,8 @@ class Operator:
     atk = 3
     max_hp = 5
 
-    def __init__(self, hp: int, op_id: str, team: int, reserve: bool, location: int, alive: bool, skill_active: int):
+    def __init__(self, hp: int, op_id: str, team: int, reserve: bool, location: int, alive: bool,
+                 skill_active: int, bleeding_out: int):
         self.hp = hp
         self.op_id = op_id
         self.team = team
@@ -48,14 +50,15 @@ class Operator:
         self.location = location
         self.alive = alive
         self.skill_active = skill_active
+        self.bleeding_out = bleeding_out
 
     def take_damage(self, dmg_amount: int):
         self.hp -= dmg_amount
         if self.hp < 1:
             self.alive = False
-            self.reserve = True
             self.skill_active = 0
-            current_game.board.contents[self.location].remove(self)
+            self.bleeding_out = 6
+            current_game.ops_bleeding_out.append(self)
             for op in current_game.current_player.ops:
                 if op.alive and not op.reserve:
                     current_game.current_player.selected_op = op
@@ -113,7 +116,7 @@ def create_operators(player_num: int, is_reserve: bool):
     id_list = temp
     result = []
     for i in range(5):
-        result.append(Operator(5, id_list[i], player_num, is_reserve, starting_sector, True, False))
+        result.append(Operator(5, id_list[i], player_num, is_reserve, starting_sector, True, False, 5))
     return result
 
 
@@ -235,6 +238,13 @@ def check_cooldowns():
         current_game.current_player.support_delay -= current_game.current_player.command_center.allocated + 1
         if current_game.current_player.support_delay < 0:
             current_game.current_player.support_delay = 0
+    for op in current_game.ops_bleeding_out:
+        if op.team == current_game.current_player.player_id:
+            op.bleeding_out -= 1
+            if op.bleeding_out == 0:
+                op.reserve = True
+                current_game.board.contents[op.location].remove(op)
+                current_game.ops_bleeding_out.remove(op)
     if current_game.current_player.medbay.facility_aux > 0:  # If medbay heal cooldown has not completed
         # If the medbay's crates + 1 are less than the cooldown
         if current_game.current_player.medbay.allocated + 1 < current_game.current_player.medbay.facility_aux:
@@ -321,8 +331,10 @@ def print_board():
         for op in current_game.board.contents[i]:
             print(op.op_id, end="")
             if op.hp < 5:
-                print("v" + str(op.hp), end="")
-            print(end="")
+                if op.alive:
+                    print("v" + str(op.hp), end="")
+                else:
+                    print("X" + str(op.bleeding_out), end="")
             if current_game.overwatch_state and op == current_game.overwatch_operator:
                 print("W", end="")
             if op.skill_active == 1:
@@ -399,7 +411,8 @@ def parse_command(command):
                     return False
 
         case 1:  # SWC - Switch
-            current_game.current_player.selected_op = current_game.current_player.ops[cmd_arg]
+            if current_game.current_player.ops[cmd_arg].alive:
+                current_game.current_player.selected_op = current_game.current_player.ops[cmd_arg]
             should_switch = False
 
         case 2:  # MOV - Move
