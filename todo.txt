@@ -1,10 +1,6 @@
 Add SKL instruction
-    - Add Longwatch skill
-    - Add Blade skill
-    - Add Technician skill
     - Add Medic skill
     - Add Specialist skill
-Add suspend and resume functionality
-    - Add ability to save current game to a file for future playback
 Add support for STDEX and STDEX Type-A rulesets
   - Not sure how to go about implementing this
+  - Add cheating checks for using dead operators in STDEX (incl. Type-A)
