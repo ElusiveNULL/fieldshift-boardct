@@ -444,7 +444,8 @@ def parse_command(command):
                             current_game.other_player.ops[cmd_arg].location
                         # Deal damage to target
                         current_game.other_player.ops[cmd_arg].take_damage(check_range(
-                            current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, True))
+                            current_game.current_player.selected_op,
+                            current_game.other_player.ops[cmd_arg], False, True))
                     case 3 | 8:  # Medic
                         if current_game.current_player.ops[cmd_arg].alive:
                             should_switch = False
