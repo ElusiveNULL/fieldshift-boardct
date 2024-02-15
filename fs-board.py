@@ -429,35 +429,41 @@ def parse_command(command):
                 check_overwatch()
 
         case 3:  # HIT - Attack
-            # Check for medic skill
-            if current_game.current_player.ops[3].skill_active > 0 \
-                    or current_game.current_player.ops[8].skill_active > 0:
-                if current_game.current_player.ops[cmd_arg].alive:
-                    should_switch = False
-                else:
-                    current_game.current_player.ops[cmd_arg].alive = True
-                    current_game.current_player.ops[cmd_arg].hp = 5
-                    current_game.current_player.ops[cmd_arg].bleeding_out = 6
-                    if current_game.current_player.ops[cmd_arg].reserve:
-                        current_game.current_player.cheated = True
-                        current_game.current_player.ops[cmd_arg].reserve = False
+            if current_game.other_player.ops[cmd_arg].reserve:
+                current_game.current_player.cheated = True
+            # Check for skills
+            if current_game.current_player.selected_op.skill_active:
+                match int(current_game.current_player.selected_op.op_id):
+                    case 1 | 6:  # Blade
+                        # Move blade to target's sector
+                        current_game.board.contents[current_game.current_player.selected_op.location].remove(
+                            current_game.current_player.selected_op)
+                        current_game.board.contents[current_game.other_player.ops[cmd_arg].location].append(
+                            current_game.current_player.selected_op)
+                        current_game.current_player.selected_op.location = \
+                            current_game.other_player.ops[cmd_arg].location
+                        # Deal damage to target
+                        current_game.other_player.ops[cmd_arg].take_damage(check_range(
+                            current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, True))
+                    case 3 | 8:  # Medic
+                        if current_game.current_player.ops[cmd_arg].alive:
+                            should_switch = False
+                        else:
+                            current_game.current_player.ops[cmd_arg].alive = True
+                            current_game.current_player.ops[cmd_arg].hp = 5
+                            current_game.current_player.ops[cmd_arg].bleeding_out = 6
+                            if current_game.current_player.ops[cmd_arg].reserve:
+                                current_game.current_player.cheated = True
+                                current_game.current_player.ops[cmd_arg].reserve = False
+                    case 4 | 9:  # Specialist
+                        current_game.current_player.selected_op.skill_active -= 1
+                        current_game.other_player.ops[cmd_arg].take_damage(check_range(
+                            current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False,
+                            False))
+                        should_switch = False
             else:
-                if current_game.other_player.ops[cmd_arg].reserve:
-                    current_game.current_player.cheated = True
-                if current_game.current_player.selected_op.skill_active == 1 and \
-                        (int(current_game.current_player.selected_op.op_id[1]) == (1 or 6)):
-                    # Move blade to target's sector
-                    current_game.board.contents[current_game.current_player.selected_op.location].remove(
-                        current_game.current_player.selected_op)
-                    current_game.board.contents[current_game.other_player.ops[cmd_arg].location].append(
-                        current_game.current_player.selected_op)
-                    current_game.current_player.selected_op.location = current_game.other_player.ops[cmd_arg].location
-                    # Deal damage to target
-                    current_game.other_player.ops[cmd_arg].take_damage(check_range(
-                        current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, True))
-                else:
-                    current_game.other_player.ops[cmd_arg].take_damage(check_range(
-                        current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, False))
+                current_game.other_player.ops[cmd_arg].take_damage(check_range(
+                    current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, False))
 
         case 4:  # RNF - Reinforce
             current_game.current_player.crates -= 1
@@ -486,18 +492,24 @@ def parse_command(command):
             if current_game.current_player.skill_delay > 0 or current_game.other_player.ops[2].skill_active > 0 \
                     or current_game.other_player.ops[7].skill_active > 0:
                 current_game.current_player.cheated = True
-            current_game.current_player.skill_delay = 6
-            match cmd_arg:
-                case 0 | 5:  # Longwatch
-                    current_game.current_player.ops[cmd_arg].skill_active = 1
-                case 1 | 6:  # Blade
-                    current_game.current_player.ops[cmd_arg].skill_active = 1
-                    should_switch = False
-                case 2 | 7:  # Technician
-                    current_game.current_player.ops[cmd_arg].skill_active = 3
-                case 3 | 8:  # Medic
-                    current_game.current_player.ops[cmd_arg].skill_active = 1
-                    should_switch = False
+            if not current_game.current_player.ops[cmd_arg].alive:
+                should_switch = False
+            else:
+                current_game.current_player.skill_delay = 6
+                match cmd_arg:
+                    case 0 | 5:  # Longwatch
+                        current_game.current_player.ops[cmd_arg].skill_active = 1
+                    case 1 | 6:  # Blade
+                        current_game.current_player.ops[cmd_arg].skill_active = 1
+                        should_switch = False
+                    case 2 | 7:  # Technician
+                        current_game.current_player.ops[cmd_arg].skill_active = 3
+                    case 3 | 8:  # Medic
+                        current_game.current_player.ops[cmd_arg].skill_active = 1
+                        should_switch = False
+                    case 4 | 9:  # Specialist
+                        current_game.current_player.ops[cmd_arg].skill_active = 3
+                        should_switch = False
 
         case 9:  # SPT - Support
             if current_game.other_player.ops[2].skill_active > 0 or current_game.other_player.ops[7].skill_active > 0:
