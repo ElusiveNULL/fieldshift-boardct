@@ -376,7 +376,7 @@ def parse_command(command):
                     if current_game.other_player.cheated:
                         print("\nPlayer " + str(current_game.other_player.player_id)
                               + ": Game over - Called out for rule breakage\n[PLAYER " + str(
-                            current_game.other_player.player_id) + " VICTORY]\n")
+                            current_game.current_player.player_id) + " VICTORY]\n")
                         input("Press Enter to continue...")
                         return False
                 case 8:  # Request Draw
