@@ -472,7 +472,7 @@ def parse_command(command):
                 selected_facility = current_game.current_player.get_facility_by_index(cmd_arg)
                 match cmd_arg:
                     case 0:
-                        selected_facility.facility_aux = 1
+                        current_game.current_player.artillery.facility_aux = 1
                     case 1:
                         for op in current_game.current_player.ops:
                             if op.hp < 5 and not op.reserve:
