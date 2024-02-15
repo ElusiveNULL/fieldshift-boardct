@@ -550,6 +550,10 @@ def parse_command(command):
 clear_terminal()
 current_game.p1.name = read_line_input("Enter name of Player 1: ")
 current_game.p2.name = read_line_input("Enter name of Player 2: ")
+if current_game.p1.name == "":
+    current_game.p1.name = "\b\b"
+if current_game.p2.name == "":
+    current_game.p2.name = "\b\b"
 clear_terminal()
 current_game.game_log += current_game.p1.name + "\n" + current_game.p2.name + "\n"
 print_player_info(current_game.p1)
