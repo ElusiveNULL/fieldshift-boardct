@@ -37,10 +37,10 @@ class Game:
 
 
 class Operator:
-    atk = 4
+    atk = 3
     max_hp = 5
 
-    def __init__(self, hp: int, op_id: str, team: int, reserve: bool, location: int, alive: bool, skill_active: bool):
+    def __init__(self, hp: int, op_id: str, team: int, reserve: bool, location: int, alive: bool, skill_active: int):
         self.hp = hp
         self.op_id = op_id
         self.team = team
@@ -54,7 +54,7 @@ class Operator:
         if self.hp < 1:
             self.alive = False
             self.reserve = True
-            self.skill_active = False
+            self.skill_active = 0
             current_game.board.contents[self.location].remove(self)
             for op in current_game.current_player.ops:
                 if op.alive and not op.reserve:
@@ -200,7 +200,7 @@ def switch_reserve_status(operator: Operator, is_support: bool):
                     break
 
 
-def check_range(attacker: Operator, target: Operator, automatic: bool, longshot: bool):
+def check_range(attacker: Operator, target: Operator, automatic: bool, assassinate: bool):
     net_range = 3
     net_damage = attacker.atk
     if attacker.op_id[1] == ("0" or "5"):
@@ -215,11 +215,11 @@ def check_range(attacker: Operator, target: Operator, automatic: bool, longshot:
             net_damage += 1
     if attacker.location == 4 or attacker.location == 5:
         net_damage += 1
-    if attacker.op_id[1] == ("1" or "6"):
-        net_range = 0
-    if longshot:
+    if assassinate:
+        net_damage += 2
         net_range = 9
-        net_damage = 7
+    elif attacker.op_id[1] == ("1" or "6"):
+        net_range = 0
     if net_range < abs(attacker.location - target.location):
         if automatic:
             # If check_range was executed due to an automatic attack, will not mark out of range as cheating
@@ -257,15 +257,13 @@ def check_cooldowns():
 
 def check_overwatch():
     operator = current_game.current_player.ops[0]
-    if current_game.other_player.ops[0].skill_active:
+    if current_game.other_player.ops[0].skill_active == 1:
         operator = current_game.other_player.ops[0]
-    elif current_game.other_player.ops[5].skill_active:
+    elif current_game.other_player.ops[5].skill_active == 1:
         operator = current_game.other_player.ops[5]
     if operator.team == current_game.other_player.player_id:
-        current_game.current_player.selected_op.take_damage(
-            check_range(operator, current_game.current_player.selected_op, True, True)
-        )
-        operator.skill_active = False
+        current_game.current_player.selected_op.take_damage(5)
+        operator.skill_active = 0
     if current_game.overwatch_state and current_game.overwatch_operator.team == current_game.other_player.player_id:
         attack_check = check_range(
             current_game.overwatch_operator, current_game.current_player.selected_op, True, False
@@ -327,8 +325,10 @@ def print_board():
             print(end="")
             if current_game.overwatch_state and op == current_game.overwatch_operator:
                 print("W", end="")
-            if op.skill_active:
+            if op.skill_active == 1:
                 print("S", end="")
+            elif op.skill_active > 1:
+                print("S" + str(op.skill_active), end="")
             print("", end=" ")
         print("")
     print("\n")
@@ -407,8 +407,7 @@ def parse_command(command):
             check_overwatch()
             if to_move == current_game.current_player.selected_op:
                 current_game.board.contents[current_game.current_player.selected_op.location].remove(
-                    current_game.current_player.selected_op
-                )
+                    current_game.current_player.selected_op)
                 current_game.board.contents[cmd_arg].append(current_game.current_player.selected_op)
                 current_game.current_player.selected_op.location = cmd_arg
                 check_overwatch()
@@ -416,8 +415,20 @@ def parse_command(command):
         case 3:  # HIT - Attack
             if current_game.other_player.ops[cmd_arg].reserve:
                 current_game.current_player.cheated = True
-            current_game.other_player.ops[cmd_arg].take_damage(check_range(
-                current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, False))
+            if current_game.current_player.selected_op.skill_active == 1 and \
+                    (int(current_game.current_player.selected_op.op_id[1]) == (1 or 6)):
+                # Move blade to target's sector
+                current_game.board.contents[current_game.current_player.selected_op.location].remove(
+                    current_game.current_player.selected_op)
+                current_game.board.contents[current_game.other_player.ops[cmd_arg].location].append(
+                    current_game.current_player.selected_op)
+                current_game.current_player.selected_op.location = current_game.other_player.ops[cmd_arg].location
+                # Deal damage to target
+                current_game.other_player.ops[cmd_arg].take_damage(check_range(
+                    current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, True))
+            else:
+                current_game.other_player.ops[cmd_arg].take_damage(check_range(
+                    current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, False))
 
         case 4:  # RNF - Reinforce
             current_game.current_player.crates -= 1
@@ -439,9 +450,16 @@ def parse_command(command):
             current_game.overwatch_operator = current_game.current_player.ops[cmd_arg]
 
         case 8:  # SKL - Skill
+            if current_game.current_player.skill_delay > 0:
+                current_game.current_player.cheated = True
             match cmd_arg:
                 case 0 | 5:  # Longwatch
-                    current_game.current_player.ops[cmd_arg].skill_active = True
+                    current_game.current_player.ops[cmd_arg].skill_active = 1
+                    current_game.current_player.skill_delay = 6
+                case 1 | 6:  # Blade
+                    current_game.current_player.ops[cmd_arg].skill_active = 1
+                    current_game.current_player.skill_delay = 6
+                    should_switch = False
 
         case 9:  # SPT - Support
             if current_game.current_player.artillery.facility_aux == 1:
