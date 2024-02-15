@@ -211,13 +211,16 @@ def check_range(attacker: Operator, target: Operator, automatic: bool, assassina
     match target.location:
         case 0 | 9:
             net_range -= 2
-            net_damage -= 2
+            net_damage -= 1
         case 1 | 8:
             net_range -= 1
         case 4 | 5:
             net_damage += 1
-    if attacker.location == 4 or attacker.location == 5:
-        net_damage += 1
+    match attacker.location:
+        case 0 | 9:
+            net_range -= 2
+        case 4 | 5:
+            net_damage += 1
     if assassinate:
         net_damage += 2
         net_range = 9
