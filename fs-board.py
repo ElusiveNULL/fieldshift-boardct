@@ -511,8 +511,8 @@ def parse_command(command):
                 current_game.overwatch_operator = operator
                 break
 
-    check_cooldowns()
     if should_switch:
+        check_cooldowns()
         if current_game.current_player == current_game.p1:
             current_game.current_player = current_game.p2
         else:
