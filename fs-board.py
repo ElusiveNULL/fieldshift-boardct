@@ -377,9 +377,9 @@ def parse_command(command):
                     save_file.write(current_game.game_log)
                     return False
                 case 3:  # Resume suspended game
-                    save_name = "fs_save_" + input("Enter the name of the save file: fs_save_")
+                    save_name = "fs_save_" + input("Enter name of save file: fs_save_")
                     if not os.path.isfile(save_name):
-                        input("Could not find save file " + save_name +
+                        input("Could not find save file: " + save_name +
                               "\nPress Enter to continue...")
                     else:
                         current_game = Game(True, open(save_name))
