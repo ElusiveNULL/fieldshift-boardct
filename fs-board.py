@@ -442,6 +442,11 @@ def parse_command(command):
             should_switch = False
 
         case 6:  # RGP - Regroup
+            if current_game.current_player.skill_delay > 0 or (
+                current_game.other_player.ops[2].skill_active > 0 and current_game.other_player.ops[2].alive) \
+                    or (current_game.other_player.ops[7].skill_active > 0 and current_game.other_player.ops[7].alive):
+                current_game.current_player.cheated = True
+            current_game.current_player.skill_delay = 6
             rgp_target = current_game.current_player.ops[cmd_arg]
             switch_reserve_status(rgp_target, False)
 
@@ -450,8 +455,11 @@ def parse_command(command):
             current_game.overwatch_operator = current_game.current_player.ops[cmd_arg]
 
         case 8:  # SKL - Skill
-            if current_game.current_player.skill_delay > 0:
+            if current_game.current_player.skill_delay > 0 or (
+                 current_game.other_player.ops[2].skill_active > 0 and current_game.other_player.ops[2].alive) \
+                    or (current_game.other_player.ops[7].skill_active > 0 and current_game.other_player.ops[7].alive):
                 current_game.current_player.cheated = True
+            current_game.current_player.skill_delay = 6
             match cmd_arg:
                 case 0 | 5:  # Longwatch
                     current_game.current_player.ops[cmd_arg].skill_active = 1
@@ -460,8 +468,15 @@ def parse_command(command):
                     current_game.current_player.ops[cmd_arg].skill_active = 1
                     current_game.current_player.skill_delay = 6
                     should_switch = False
+                case 2 | 7:  # Technician
+                    current_game.current_player.ops[cmd_arg].skill_active = 3
+                    current_game.current_player.skill_delay = 6
 
         case 9:  # SPT - Support
+            if (current_game.other_player.ops[2].skill_active > 0 and current_game.other_player.ops[2].alive) \
+                    or (current_game.other_player.ops[7].skill_active > 0 and current_game.other_player.ops[7].alive):
+                current_game.current_player.cheated = True
+            current_game.current_player.support_delay = 6
             if current_game.current_player.artillery.facility_aux == 1:
                 current_game.current_player.support_delay = 5 - current_game.current_player.command_center.allocated
                 current_game.current_player.artillery.facility_aux = 0
@@ -469,7 +484,8 @@ def parse_command(command):
                     if op.team == current_game.other_player.player_id:
                         op.take_damage(current_game.current_player.artillery.allocated + 1)
             else:
-                selected_facility = current_game.current_player.get_facility_by_index(cmd_arg)
+                if current_game.current_player.support_delay > 0:
+                    current_game.current_player.cheated = True
                 match cmd_arg:
                     case 0:
                         current_game.current_player.artillery.facility_aux = 1
