@@ -1,5 +1,4 @@
 Add SKL instruction
-    - Add Medic skill
     - Add Specialist skill
 Add support for STDEX and STDEX Type-A rulesets
   - Not sure how to go about implementing this
