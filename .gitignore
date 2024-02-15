@@ -240,3 +240,4 @@ fabric.properties
 # Custom
 *:Zone.Identifier
 .idea/
+fs_save_*
