@@ -57,7 +57,9 @@ class Operator:
         if self.hp < 1:
             self.alive = False
             self.skill_active = 0
-            self.bleeding_out = 6
+            self.bleeding_out = 5
+            if dmg_amount == 8:  # Only the sniper's skill can deal this much damage
+                self.bleeding_out = 6  # The sniper's skill occurs on the target's turn, so the timer must be extended
             current_game.ops_bleeding_out.append(self)
             for op in current_game.current_player.ops:
                 if op.alive and not op.reserve:
@@ -274,7 +276,7 @@ def check_overwatch():
     elif current_game.other_player.ops[5].skill_active == 1:
         operator = current_game.other_player.ops[5]
     if operator.team == current_game.other_player.player_id:
-        current_game.current_player.selected_op.take_damage(5)
+        current_game.current_player.selected_op.take_damage(8)
         operator.skill_active = 0
     if current_game.overwatch_state and current_game.overwatch_operator.team == current_game.other_player.player_id:
         attack_check = check_range(
