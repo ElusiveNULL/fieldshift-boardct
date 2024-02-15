@@ -376,13 +376,12 @@ def parse_command(command):
                     if not os.path.isfile(save_name):
                         input("Could not find save file " + save_name +
                               "\nPress Enter to continue...")
-                        should_switch = False
                     else:
                         current_game = Game(True, open(save_name))
                         input("Loaded save file\nPress Enter to continue...")
                         current_game.p1.name = read_line_input("Enter name of Player 1: ")
                         current_game.p2.name = read_line_input("Enter name of Player 2: ")
-                    return True
+                    should_switch = False
                 case 6:  # Dispute
                     if current_game.other_player.cheated:
                         print("\nPlayer " + str(current_game.other_player.player_id)
