@@ -271,9 +271,9 @@ def check_cooldowns():
 
 def check_overwatch():
     operator = current_game.current_player.ops[0]
-    if current_game.other_player.ops[0].skill_active == 1:
+    if current_game.other_player.ops[0].skill_active == -1:
         operator = current_game.other_player.ops[0]
-    elif current_game.other_player.ops[5].skill_active == 1:
+    elif current_game.other_player.ops[5].skill_active == -1:
         operator = current_game.other_player.ops[5]
     if operator.team == current_game.other_player.player_id:
         current_game.current_player.selected_op.take_damage(8)
@@ -341,9 +341,9 @@ def print_board():
                     print("X" + str(op.bleeding_out), end="")
             if current_game.overwatch_state and op == current_game.overwatch_operator:
                 print("W", end="")
-            if op.skill_active == 1:
+            if op.skill_active == -1:
                 print("S", end="")
-            elif op.skill_active > 1:
+            elif op.skill_active > 0:
                 print("S" + str(op.skill_active), end="")
             print("", end=" ")
         print("")
@@ -432,8 +432,8 @@ def parse_command(command):
             if current_game.other_player.ops[cmd_arg].reserve:
                 current_game.current_player.cheated = True
             # Check for skills
-            if current_game.current_player.selected_op.skill_active:
-                match int(current_game.current_player.selected_op.op_id):
+            if current_game.current_player.selected_op.skill_active != 0:
+                match int(current_game.current_player.selected_op.op_id[1]):
                     case 1 | 6:  # Blade
                         # Move blade to target's sector
                         current_game.board.contents[current_game.current_player.selected_op.location].remove(
@@ -450,6 +450,7 @@ def parse_command(command):
                         if current_game.current_player.ops[cmd_arg].alive:
                             should_switch = False
                         else:
+                            current_game.current_player.selected_op.skill_active = 0
                             current_game.current_player.ops[cmd_arg].alive = True
                             current_game.current_player.ops[cmd_arg].hp = 5
                             current_game.current_player.ops[cmd_arg].bleeding_out = 6
@@ -499,15 +500,12 @@ def parse_command(command):
                 current_game.current_player.skill_delay = 6
                 match cmd_arg:
                     case 0 | 5:  # Longwatch
-                        current_game.current_player.ops[cmd_arg].skill_active = 1
-                    case 1 | 6:  # Blade
-                        current_game.current_player.ops[cmd_arg].skill_active = 1
+                        current_game.current_player.ops[cmd_arg].skill_active = -1
+                    case 1 | 6 | 3 | 8:  # Blade or medic
+                        current_game.current_player.ops[cmd_arg].skill_active = -1
                         should_switch = False
                     case 2 | 7:  # Technician
                         current_game.current_player.ops[cmd_arg].skill_active = 3
-                    case 3 | 8:  # Medic
-                        current_game.current_player.ops[cmd_arg].skill_active = 1
-                        should_switch = False
                     case 4 | 9:  # Specialist
                         current_game.current_player.ops[cmd_arg].skill_active = 3
                         should_switch = False
