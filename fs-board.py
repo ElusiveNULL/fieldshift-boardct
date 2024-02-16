@@ -575,7 +575,10 @@ while not current_game.is_finished:
                              " (" + current_game.current_player.selected_op.op_id + "): ")
 
     if not validate_command(cmd):
-        print("'" + cmd + "' is not a valid command.")
+        if cmd == "":
+            print("No command entered.")
+        else:
+            print("'" + cmd + "' is not a valid command.")
         continue
     if not parse_command(cmd):
         break
