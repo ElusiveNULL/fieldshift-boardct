@@ -118,7 +118,7 @@ def create_operators(player_num: int, is_reserve: bool):
     id_list = temp
     result = []
     for i in range(5):
-        result.append(Operator(5, id_list[i], player_num, is_reserve, starting_sector, True, False, 5))
+        result.append(Operator(5, id_list[i], player_num, is_reserve, starting_sector, True, 0, 5))
     return result
 
 
@@ -269,15 +269,19 @@ def check_cooldowns():
                     op.hp = 5
 
 
+# Check if an operator triggers an overwatch shot
 def check_overwatch():
-    operator = current_game.current_player.ops[0]
+    longwatch = current_game.current_player.ops[0]
+    # If the other player's longwatch skill is active
     if current_game.other_player.ops[0].skill_active == -1:
-        operator = current_game.other_player.ops[0]
+        longwatch = current_game.other_player.ops[0]
+    # Check second longwatch as well
     elif current_game.other_player.ops[5].skill_active == -1:
-        operator = current_game.other_player.ops[5]
-    if operator.team == current_game.other_player.player_id:
+        longwatch = current_game.other_player.ops[5]
+    # Trigger longwatch skill shot if target operator is on other team
+    if longwatch.team == current_game.other_player.player_id:
         current_game.current_player.selected_op.take_damage(8)
-        operator.skill_active = 0
+        longwatch.skill_active = 0
     if current_game.overwatch_state and current_game.overwatch_operator.team == current_game.other_player.player_id:
         attack_check = check_range(
             current_game.overwatch_operator, current_game.current_player.selected_op, True, False
