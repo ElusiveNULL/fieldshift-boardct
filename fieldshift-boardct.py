@@ -250,14 +250,15 @@ def check_cooldowns():
                 current_game.board.contents[op.location].remove(op)
                 current_game.ops_bleeding_out.remove(op)
     if current_game.current_player.medbay.facility_aux > 0:  # If medbay heal cooldown has not completed
-        # If the medbay's crates + 1 are less than the cooldown
-        if current_game.current_player.medbay.allocated + 1 < current_game.current_player.medbay.facility_aux:
-            # Subtract medbay cooldown by medbay crates + 1
+        # Check if allocated crates +1 is less than passive healing cooldown
+        if current_game.current_player.medbay.allocated + 1 <= current_game.current_player.medbay.facility_aux:
+            # Decrease passive reserve healing cooldown by more for each crate allocated to medbay
             current_game.current_player.medbay.facility_aux -= current_game.current_player.medbay.allocated + 1
+            # Keep cooldown from being negative
             if current_game.current_player.medbay.facility_aux < 0:
                 current_game.current_player.medbay.facility_aux = 0
         else:
-            current_game.current_player.medbay.facility_aux -= 1
+            current_game.current_player.medbay.facility_aux = 0
     else:
         heal_amount = 2
         if current_game.current_player.medbay.allocated > 3:
