@@ -13,9 +13,9 @@ if os.name == "nt":
 class Game:
     def __init__(self, is_in_playback: bool, input_stream: TextIO):
         self.is_finished = False
-        self.game_log = ""
+        self.game_log = ""  # Contains log of every command for saving and loading
 
-        self.is_in_playback = is_in_playback
+        self.is_in_playback = is_in_playback  # Tracks whether game is reading from save file
         self.input_stream = input_stream
 
         p1 = create_player("No name", 1)
@@ -54,14 +54,14 @@ class Operator:
 
     def take_damage(self, dmg_amount: int):
         self.hp -= dmg_amount
-        if self.hp < 1:
+        if self.hp < 1:  # Kill operator
             self.alive = False
             self.skill_active = 0
             self.bleeding_out = 5
             if dmg_amount == 8:  # Only the sniper's skill can deal this much damage
                 self.bleeding_out = 6  # The sniper's skill occurs on the target's turn, so the timer must be extended
             current_game.ops_bleeding_out.append(self)
-            for op in current_game.current_player.ops:
+            for op in current_game.current_player.ops:  # Change selected operator to first alive and deployed operator
                 if op.alive and not op.reserve:
                     current_game.current_player.selected_op = op
                     break
@@ -107,7 +107,7 @@ def create_operators(player_num: int, is_reserve: bool):
     id_list = list(range(10))
     if is_reserve:
         id_list = id_list[4:]
-    player_char = '+'
+    player_char = '+'  # This variable indicates which player controls the operator
     starting_sector = 0
     if player_num == 2:
         starting_sector = 9
@@ -184,7 +184,7 @@ def read_line_input(prompt: str):
 
 def switch_reserve_status(operator: Operator, is_support: bool):
     if operator.reserve:
-        if not is_support:
+        if not is_support:  # Take crate unless triggered by support skill
             current_game.current_player.crates -= 1
         operator.reserve = False
         if current_game.current_player == current_game.p1:
@@ -198,6 +198,7 @@ def switch_reserve_status(operator: Operator, is_support: bool):
             current_game.current_player.crates += 1
         operator.reserve = True
         current_game.board.contents[operator.location].remove(operator)
+        # Remove operator from the board and select new operator
         if operator == current_game.current_player.selected_op:
             for op in current_game.current_player.ops:
                 if op.alive and not op.reserve:
@@ -205,28 +206,29 @@ def switch_reserve_status(operator: Operator, is_support: bool):
                     break
 
 
+# Check if attack is in range, factor in class/terrain, and return net damage
 def check_range(attacker: Operator, target: Operator, automatic: bool, assassinate: bool):
     net_range = 3
     net_damage = attacker.atk
-    if attacker.op_id[1] == ("0" or "5"):
+    if attacker.op_id[1] == ("0" or "5"):  # If operator class is Longwatch
         net_range = 5
     match target.location:
-        case 0 | 9:
+        case 0 | 9:  # Ruins
             net_range -= 2
             net_damage -= 1
-        case 1 | 8:
+        case 1 | 8:  # Tall grass
             net_range -= 1
-        case 4 | 5:
+        case 4 | 5:  # Mountains
             net_damage += 1
     match attacker.location:
         case 0 | 9:
             net_range -= 2
         case 4 | 5:
             net_damage += 1
-    if assassinate:
+    if assassinate:  # If attack is blade's skill
         net_damage += 2
         net_range = 9
-    elif attacker.op_id[1] == ("1" or "6"):
+    elif attacker.op_id[1] == ("1" or "6"):  # Set blade's range to zero regardless of terrain
         net_range = 0
     if net_range < abs(attacker.location - target.location):
         if automatic:
@@ -240,6 +242,7 @@ def check_cooldowns():
     if current_game.current_player.skill_delay > 0:
         current_game.current_player.skill_delay -= 1
     if current_game.current_player.support_delay > 0:
+        # Decrease support cooldown more for each crate allocated to command center
         current_game.current_player.support_delay -= current_game.current_player.command_center.allocated + 1
         if current_game.current_player.support_delay < 0:
             current_game.current_player.support_delay = 0
@@ -261,6 +264,7 @@ def check_cooldowns():
             current_game.current_player.medbay.facility_aux = 0
     else:
         heal_amount = 2
+        # If enough crates are allocated to make cooldown zero, excess crates increase healing amount
         if current_game.current_player.medbay.allocated > 3:
             heal_amount += current_game.current_player.medbay.allocated - 3
         for op in current_game.current_player.ops:
@@ -282,30 +286,32 @@ def check_overwatch():
     # Trigger longwatch skill shot if target operator is on other team
     if longwatch.team == current_game.other_player.player_id:
         current_game.current_player.selected_op.take_damage(8)
-        longwatch.skill_active = 0
+        longwatch.skill_active = 0  # Disable longwatch skill
+    # If overwatch is active and the overwatch operator is on the other team
     if current_game.overwatch_state and current_game.overwatch_operator.team == current_game.other_player.player_id:
         attack_check = check_range(
-            current_game.overwatch_operator, current_game.current_player.selected_op, True, False
-        )
+            current_game.overwatch_operator, current_game.current_player.selected_op, True, False)
+        # If the overwatch operator is alive and deployed and target is in range
         if (not current_game.overwatch_operator.reserve and current_game.overwatch_operator.alive) and \
                 attack_check > 0:
             current_game.current_player.selected_op.take_damage(attack_check)
             current_game.overwatch_state = False
+            # Reset overwatch operator to dead or reserve operator because they aren't eligible to take overwatch shots
             for operator in current_game.other_player.ops:
                 if operator.reserve or not operator.alive:
                     current_game.overwatch_operator = operator
 
 
 def print_player_info(player: Player):
-    deployed_ops = 0
+    deployed_ops = 0  # Track how many operators are alive and deployed
     print("[Player " + str(player.player_id) + ": " + player.name + "]" +
           "\nSkill Cooldown:", end=" ")
-    if player.skill_delay > 0:
+    if player.skill_delay > 0:  # If skill is ready, print [READY] instead of cooldown number
         print(str(player.skill_delay), end="")
     else:
         print("[READY]", end="")
     print("\nSupport Cooldown:", end=" ")
-    if player.support_delay > 0:
+    if player.support_delay > 0:  # If support is ready, print [READY] instead of cooldown number
         print(str(player.support_delay))
     else:
         print("[READY]")
@@ -314,6 +320,7 @@ def print_player_info(player: Player):
           "-" + str(player.medbay.allocated) +
           "-" + str(player.command_center.allocated) +
           "\nReserve:", end=" ")
+    # Print all operators that are alive and in reserve
     for op in player.ops:
         if op.alive:
             if op.reserve:
@@ -323,6 +330,7 @@ def print_player_info(player: Player):
                     print(str(player.ops.index(op)), end=" ")
             else:
                 deployed_ops += 1
+    # Check for win condition
     if deployed_ops == 0:
         print("")
         print("\nPlayer " + str(player.player_id)
@@ -335,19 +343,25 @@ def print_player_info(player: Player):
 
 
 def print_board():
+    # Print all sectors
     for i in range(10):
         print(current_game.board.terrain[i] + " Sector " + str(i) + ":", end=" ")
         for op in current_game.board.contents[i]:
             print(op.op_id, end="")
             if op.hp < 5:
+                # Print remaining vitality if not full
                 if op.alive:
                     print("v" + str(op.hp), end="")
+                # If bleeding out, print cooldown instead
                 elif not op.reserve:
                     print("X" + str(op.bleeding_out), end="")
+            # If operator is on overwatch
             if current_game.overwatch_state and op == current_game.overwatch_operator:
                 print("W", end="")
+            # If operator's skill is active and permanent until used
             if op.skill_active == -1:
                 print("S", end="")
+            # If skill is active and lasts until a set number of turns
             elif op.skill_active > 0:
                 print("S" + str(op.skill_active), end="")
             print("", end=" ")
@@ -362,11 +376,13 @@ def validate_command(command: str):
 
 def parse_command(command):
     global current_game
+    # Add command to game log unless save or load operation is done
     if not command == "02" and not command == "03":
         current_game.game_log += command + "\n"
+    # Reset the tracker for if the current player cheated
     current_game.current_player.cheated = False
     cmd_arg = int(command[1])
-    should_switch = True
+    should_switch = True  # Tracks if the turn should end
     if current_game.current_player == current_game.p1:
         current_game.other_player = current_game.p2
     else:
@@ -386,7 +402,7 @@ def parse_command(command):
                     if not os.path.isfile(save_name):
                         input("Could not find save file: " + save_name +
                               "\nPress Enter to continue...")
-                    else:
+                    else:  # Load save
                         current_game = Game(True, open(save_name))
                         input("Loaded save file\nPress Enter to continue...")
                         current_game.p1.name = read_line_input("Enter name of Player 1: ")
@@ -425,7 +441,8 @@ def parse_command(command):
 
         case 2:  # MOV - Move
             to_move = current_game.current_player.selected_op
-            check_overwatch()
+            check_overwatch()  # Check if moving operator triggers overwatch shot
+            # Currently selected operator will change if killed by overwatch shot
             if to_move == current_game.current_player.selected_op:
                 current_game.board.contents[current_game.current_player.selected_op.location].remove(
                     current_game.current_player.selected_op)
@@ -468,7 +485,7 @@ def parse_command(command):
                             current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False,
                             False))
                         should_switch = False
-            else:
+            else:  # If skill not active
                 current_game.other_player.ops[cmd_arg].take_damage(check_range(
                     current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, False))
 
@@ -496,6 +513,7 @@ def parse_command(command):
             current_game.overwatch_operator = current_game.current_player.ops[cmd_arg]
 
         case 8:  # SKL - Skill
+            # Mark cheating if skill was activated during cooldown or if SKL is banned by enemy technician
             if current_game.current_player.skill_delay > 0 or current_game.other_player.ops[2].skill_active > 0 \
                     or current_game.other_player.ops[7].skill_active > 0:
                 current_game.current_player.cheated = True
@@ -516,28 +534,30 @@ def parse_command(command):
                         should_switch = False
 
         case 9:  # SPT - Support
+            # Mark cheating SPT is banned by enemy technician
             if current_game.other_player.ops[2].skill_active > 0 or current_game.other_player.ops[7].skill_active > 0:
                 current_game.current_player.cheated = True
             current_game.current_player.support_delay = 6
+            # Interpret argument as artillery target sector instead of facility number if artillery is loaded
             if current_game.current_player.artillery.facility_aux == 1:
                 current_game.current_player.support_delay = 5 - current_game.current_player.command_center.allocated
                 current_game.current_player.artillery.facility_aux = 0
                 for op in current_game.board.contents[cmd_arg]:
                     if op.team == current_game.other_player.player_id:
                         op.take_damage(current_game.current_player.artillery.allocated + 1)
-            else:
+            else:  # Mark cheating if support was activated during cooldown
                 if current_game.current_player.support_delay > 0:
                     current_game.current_player.cheated = True
                 match cmd_arg:
-                    case 0:
-                        current_game.current_player.artillery.facility_aux = 1
-                    case 1:
+                    case 0:  # Artillery
+                        current_game.current_player.artillery.facility_aux = 1  # Load artillery
+                    case 1:  # Medbay
                         for op in current_game.current_player.ops:
                             if op.hp < 5 and not op.reserve:
                                 op.hp += 2
                                 if op.hp > 5:
                                     op.hp = 5
-                    case 2:
+                    case 2:  # Command center
                         for op in current_game.current_player.ops:
                             switch_reserve_status(op, True)
                     case _:
@@ -566,6 +586,7 @@ def parse_command(command):
 clear_terminal()
 current_game.p1.name = read_line_input("Enter name of Player 1: ")
 current_game.p2.name = read_line_input("Enter name of Player 2: ")
+# Remove colon and space before player name if player name is empty
 if current_game.p1.name == "":
     current_game.p1.name = "\b\b"
 if current_game.p2.name == "":
