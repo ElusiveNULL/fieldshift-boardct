@@ -302,8 +302,23 @@ def check_overwatch():
                     current_game.overwatch_operator = operator
 
 
+def check_game_over(player: Player):
+    for op in player.ops:
+        if op.alive and not op.reserve:
+            return False
+    if player.player_id == current_game.current_player.player_id:
+        print("Player " + str(current_game.current_player.player_id)
+              + ": Game over - All deployed operators eliminated.\n[PLAYER " +
+              str(current_game.other_player.player_id) + " VICTORY]\n")
+    else:
+        print("Player " + str(current_game.other_player.player_id)
+              + ": Game over - All deployed operators eliminated.\n[PLAYER " +
+              str(current_game.current_player.player_id) + " VICTORY]\n")
+    input("Press Enter to continue...")
+    return True
+
+
 def print_player_info(player: Player):
-    deployed_ops = 0  # Track how many operators are alive and deployed
     print("[Player " + str(player.player_id) + ": " + player.name + "]" +
           "\nSkill Cooldown:", end=" ")
     if player.skill_delay > 0:  # If skill is ready, print [READY] instead of cooldown number
@@ -328,21 +343,12 @@ def print_player_info(player: Player):
                     print(str(player.ops.index(op)) + "v" + str(op.hp), end=" ")
                 else:
                     print(str(player.ops.index(op)), end=" ")
-            else:
-                deployed_ops += 1
-    # Check for win condition
-    if deployed_ops == 0:
-        print("")
-        print("\nPlayer " + str(player.player_id)
-              + ": Game over - All deployed operators eliminated.\n[PLAYER " +
-              str(current_game.other_player.player_id) + " VICTORY]\n")
-        input("Press Enter to continue...")
-        return False
     print("\n")
-    return True
 
 
 def print_board():
+    print_player_info(current_game.p1)
+    print_player_info(current_game.p2)
     # Print all sectors
     for i in range(10):
         print(current_game.board.terrain[i] + " Sector " + str(i) + ":", end=" ")
@@ -383,10 +389,6 @@ def parse_command(command):
     current_game.current_player.cheated = False
     cmd_arg = int(command[1])
     should_switch = True  # Tracks if the turn should end
-    if current_game.current_player == current_game.p1:
-        current_game.other_player = current_game.p2
-    else:
-        current_game.other_player = current_game.p1
     match int(command[0]):
         case 0:  # AUX - Auxiliary
             match cmd_arg:
@@ -420,8 +422,6 @@ def parse_command(command):
                     print("Player " + str(current_game.current_player.player_id) + ": Request draw")
                     if input("Player " + str(current_game.other_player.player_id) + " response: ") == "01":
                         clear_terminal()
-                        print_player_info(current_game.p1)
-                        print_player_info(current_game.p2)
                         print_board()
                         print("Game concluded: Draw by mutual agreement")
                         input("Press Enter to continue...")
@@ -443,7 +443,7 @@ def parse_command(command):
             to_move = current_game.current_player.selected_op
             check_overwatch()  # Check if moving operator triggers overwatch shot
             # Currently selected operator will change if killed by overwatch shot
-            if to_move == current_game.current_player.selected_op:
+            if to_move == current_game.current_player.selected_op and to_move.alive:
                 current_game.board.contents[current_game.current_player.selected_op.location].remove(
                     current_game.current_player.selected_op)
                 current_game.board.contents[cmd_arg].append(current_game.current_player.selected_op)
@@ -577,8 +577,10 @@ def parse_command(command):
         check_cooldowns()
         if current_game.current_player == current_game.p1:
             current_game.current_player = current_game.p2
+            current_game.other_player = current_game.p1
         else:
             current_game.current_player = current_game.p1
+            current_game.other_player = current_game.p2
     return True
 
 
@@ -591,12 +593,13 @@ if current_game.p1.name == "":
     current_game.p1.name = "\b\b"
 if current_game.p2.name == "":
     current_game.p2.name = "\b\b"
-clear_terminal()
 current_game.game_log += current_game.p1.name + "\n" + current_game.p2.name + "\n"
-print_player_info(current_game.p1)
-print_player_info(current_game.p2)
-print_board()
+
 while not current_game.is_finished:
+    print_board()
+    # Check for win condition
+    if check_game_over(current_game.current_player) or check_game_over(current_game.other_player):
+        break
     cmd = read_command_input("Player " + str(current_game.current_player.player_id) +
                              " (" + current_game.current_player.selected_op.op_id + "): ")
 
@@ -608,11 +611,3 @@ while not current_game.is_finished:
         continue
     if not parse_command(cmd):
         break
-
-    # Print updated info
-    clear_terminal()
-    if not print_player_info(current_game.p1):
-        break
-    if not print_player_info(current_game.p2):
-        break
-    print_board()
