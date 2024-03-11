@@ -26,6 +26,8 @@ class Game:
         board.contents[0].extend(p1.ops[:5])
         board.contents[9].extend(p2.ops[:5])
 
+        ruleset = 0
+        self.ruleset = ruleset
         self.p1 = p1
         self.p2 = p2
         self.board = board
@@ -189,17 +191,17 @@ def switch_reserve_status(operator: Operator, is_support: bool):
         operator.reserve = False
         if current_game.current_player == current_game.p1:
             current_game.board.contents[0].append(operator)
-            current_game.current_player.selected_op.location = 0
+            operator.location = 0
         else:
             current_game.board.contents[9].append(operator)
-            current_game.current_player.selected_op.location = 9
+            operator.location = 9
     else:
         if not is_support:
             current_game.current_player.crates += 1
         operator.reserve = True
-        current_game.board.contents[operator.location].remove(operator)
         # Remove operator from the board and select new operator
-        if operator == current_game.current_player.selected_op:
+        current_game.board.contents[operator.location].remove(operator)
+        if current_game.ruleset == 0 and current_game.current_player.selected_op == operator:
             for op in current_game.current_player.ops:
                 if op.alive and not op.reserve:
                     current_game.current_player.selected_op = op
@@ -275,7 +277,7 @@ def check_cooldowns():
 
 
 # Check if an operator triggers an overwatch shot
-def check_overwatch():
+def check_overwatch(to_check: Operator):
     longwatch = current_game.current_player.ops[0]
     # If the other player's longwatch skill is active
     if current_game.other_player.ops[0].skill_active == -1:
@@ -285,21 +287,46 @@ def check_overwatch():
         longwatch = current_game.other_player.ops[5]
     # Trigger longwatch skill shot if target operator is on other team
     if longwatch.team == current_game.other_player.player_id:
-        current_game.current_player.selected_op.take_damage(8)
+        to_check.take_damage(8)
         longwatch.skill_active = 0  # Disable longwatch skill
     # If overwatch is active and the overwatch operator is on the other team
     if current_game.overwatch_state and current_game.overwatch_operator.team == current_game.other_player.player_id:
         attack_check = check_range(
-            current_game.overwatch_operator, current_game.current_player.selected_op, True, False)
+            current_game.overwatch_operator, to_check, True, False)
         # If the overwatch operator is alive and deployed and target is in range
         if (not current_game.overwatch_operator.reserve and current_game.overwatch_operator.alive) and \
                 attack_check > 0:
-            current_game.current_player.selected_op.take_damage(attack_check)
+            to_check.take_damage(attack_check)
             current_game.overwatch_state = False
             # Reset overwatch operator to dead or reserve operator because they aren't eligible to take overwatch shots
             for operator in current_game.other_player.ops:
                 if operator.reserve or not operator.alive:
                     current_game.overwatch_operator = operator
+
+
+def change_ruleset(current_ruleset: int):
+    current_ruleset_name = "LSTD"
+    target_ruleset_name = "STDEX"
+    ruleset_destination = 1  # Ruleset to switch to
+    # if current_ruleset == 1:
+    #     current_ruleset_name = target_ruleset_name
+    #     target_ruleset_name += " Type-A"
+    #     ruleset_destination = -1
+    # elif current_ruleset == -1:
+    #     target_ruleset_name = current_ruleset_name
+    #     current_ruleset_name = "STDEX Type-A"
+    #     ruleset_destination = 0
+    clear_terminal()
+    print("Player " + str(current_game.current_player.player_id)
+          + ": Request ruleset change (" + current_ruleset_name + " --> " + target_ruleset_name + ")")
+    temp_input = input("Player " + str(current_game.other_player.player_id) + " response: ")
+    if len(temp_input) > 0 and temp_input[-1] == "1":
+        input("Ruleset changed to " + target_ruleset_name + "\n\nPress Enter to continue...")
+        current_game.ruleset = ruleset_destination
+        print_board()
+    else:
+        input("Cancelling ruleset change.\n\nPress Enter to continue...")
+    clear_terminal()
 
 
 def check_game_over(player: Player):
@@ -316,6 +343,16 @@ def check_game_over(player: Player):
               str(current_game.current_player.player_id) + " VICTORY]\n")
     input("Press Enter to continue...")
     return True
+
+
+def move_operator(to_move: Operator, move_to: int):
+    check_overwatch(to_move)  # Check if moving operator triggers overwatch shot
+    # Currently selected operator will change if killed by overwatch shot
+    if to_move.alive and (to_move == current_game.current_player.selected_op or current_game.ruleset != 0):
+        current_game.board.contents[to_move.location].remove(to_move)
+        current_game.board.contents[move_to].append(to_move)
+        to_move.location = move_to
+        check_overwatch(to_move)
 
 
 def print_player_info(player: Player):
@@ -376,18 +413,24 @@ def print_board():
 
 
 def validate_command(command: str):
-    # May need to update this for different rulesets in the future
-    return len(command) == 2 and command.isdecimal()
+    return (len(command) == 2 or len(command) == 2 + abs(current_game.ruleset)) and command.isdecimal()
 
 
 def parse_command(command):
     global current_game
     # Add command to game log unless save or load operation is done
-    if not command == "02" and not command == "03":
+    if not command == "02" and not command == "03" and not command == "05":
         current_game.game_log += command + "\n"
     # Reset the tracker for if the current player cheated
     current_game.current_player.cheated = False
     cmd_arg = int(command[1])
+    extended_cmd = False
+    cmd_arg_alt = 0
+    if current_game.ruleset != 0:
+        extended_cmd = True
+        if len(cmd) == 3:
+            cmd_arg = int(cmd[2])
+            cmd_arg_alt = int(cmd[1])
     should_switch = True  # Tracks if the turn should end
     match int(command[0]):
         case 0:  # AUX - Auxiliary
@@ -397,19 +440,26 @@ def parse_command(command):
                 case 2:  # Suspend
                     save_title = "fs_save_" + input("Enter save name: ")
                     save_file = open(save_title, "w")
+                    temp_log = str(current_game.ruleset) + "\n" + current_game.game_log
+                    current_game.game_log = temp_log
                     save_file.write(current_game.game_log)
                     return False
                 case 3:  # Resume suspended game
                     save_name = "fs_save_" + input("Enter name of save file: fs_save_")
                     if not os.path.isfile(save_name):
                         input("Could not find save file: " + save_name +
-                              "\nPress Enter to continue...")
+                              "\n\nPress Enter to continue...")
                     else:  # Load save
                         current_game = Game(True, open(save_name))
-                        input("Loaded save file\nPress Enter to continue...")
+                        input("Loaded save file\n\nPress Enter to continue...")
+                        current_game.ruleset = int(read_line_input("Enter ruleset number: "))
                         current_game.p1.name = read_line_input("Enter name of Player 1: ")
                         current_game.p2.name = read_line_input("Enter name of Player 2: ")
                     should_switch = False
+                case 5:  # Request change ruleset
+                    should_switch = False
+                    if current_game.ruleset == 0 or abs(current_game.ruleset) == 1:
+                        change_ruleset(current_game.ruleset)
                 case 6:  # Dispute
                     if current_game.other_player.cheated:
                         print("\nPlayer " + str(current_game.other_player.player_id)
@@ -417,14 +467,13 @@ def parse_command(command):
                             current_game.current_player.player_id) + " VICTORY]\n")
                         input("Press Enter to continue...")
                         return False
-                case 8:  # Request Draw
+                case 8:  # Request draw
                     clear_terminal()
                     print("Player " + str(current_game.current_player.player_id) + ": Request draw")
                     if input("Player " + str(current_game.other_player.player_id) + " response: ") == "01":
                         clear_terminal()
                         print_board()
-                        print("Game concluded: Draw by mutual agreement")
-                        input("Press Enter to continue...")
+                        input("Game concluded: Draw by mutual agreement\n\nPress Enter to continue...")
                         return False
                     should_switch = False
                 case 9:  # Concede
@@ -434,71 +483,100 @@ def parse_command(command):
                     input("Press Enter to continue...")
                     return False
 
-        case 1:  # SWC - Switch
-            if current_game.current_player.ops[cmd_arg].alive:
-                current_game.current_player.selected_op = current_game.current_player.ops[cmd_arg]
-            should_switch = False
+        case 1:  # SWC - Switch / SWP - Swap
+            if extended_cmd:  # SWP
+                temp_position = current_game.current_player.ops[cmd_arg].location
+                move_operator(current_game.current_player.ops[cmd_arg],
+                              current_game.current_player.ops[cmd_arg_alt].location)
+                move_operator(current_game.current_player.ops[cmd_arg_alt], temp_position)
+                check_overwatch(current_game.current_player.ops[cmd_arg])
+            else:  # SWC
+                if current_game.current_player.ops[cmd_arg].alive:
+                    current_game.current_player.selected_op = current_game.current_player.ops[cmd_arg]
+                should_switch = False
 
         case 2:  # MOV - Move
-            to_move = current_game.current_player.selected_op
-            check_overwatch()  # Check if moving operator triggers overwatch shot
-            # Currently selected operator will change if killed by overwatch shot
-            if to_move == current_game.current_player.selected_op and to_move.alive:
-                current_game.board.contents[current_game.current_player.selected_op.location].remove(
-                    current_game.current_player.selected_op)
-                current_game.board.contents[cmd_arg].append(current_game.current_player.selected_op)
-                current_game.current_player.selected_op.location = cmd_arg
-                check_overwatch()
+            if not extended_cmd:
+                move_operator(current_game.current_player.selected_op, cmd_arg)
+            else:
+                if len(cmd) != 2:
+                    if current_game.current_player.ops[cmd_arg_alt].reserve:
+                        should_switch = False
+                    else:
+                        move_operator(current_game.current_player.ops[cmd_arg_alt], cmd_arg)
+                else:
+                    clear_terminal()
+                    input("Command " + cmd + " is missing a third argument.\n\nPress Enter to continue...")
+                    should_switch = False
 
         case 3:  # HIT - Attack
-            if current_game.other_player.ops[cmd_arg].reserve:
+            target = current_game.other_player.ops[cmd_arg]
+            attacker = current_game.current_player.selected_op
+            if extended_cmd:
+                attacker = current_game.current_player.ops[cmd_arg_alt]
+            if target.reserve:
                 current_game.current_player.cheated = True
             # Check for skills
-            if current_game.current_player.selected_op.skill_active != 0:
-                match int(current_game.current_player.selected_op.op_id[1]):
+            if attacker.skill_active != 0:
+                match int(attacker.op_id[1]):
                     case 1 | 6:  # Blade
                         # Move blade to target's sector
-                        current_game.board.contents[current_game.current_player.selected_op.location].remove(
-                            current_game.current_player.selected_op)
-                        current_game.board.contents[current_game.other_player.ops[cmd_arg].location].append(
-                            current_game.current_player.selected_op)
-                        current_game.current_player.selected_op.location = \
-                            current_game.other_player.ops[cmd_arg].location
+                        current_game.board.contents[attacker.location].remove(attacker)
+                        current_game.board.contents[target.location].append(attacker)
+                        attacker.location = target.location
                         # Deal damage to target
-                        current_game.other_player.ops[cmd_arg].take_damage(check_range(
-                            current_game.current_player.selected_op,
-                            current_game.other_player.ops[cmd_arg], False, True))
+                        target.take_damage(check_range(attacker, target, False, True))
                     case 3 | 8:  # Medic
                         if current_game.current_player.ops[cmd_arg].alive:
                             should_switch = False
                         else:
-                            current_game.current_player.selected_op.skill_active = 0
-                            current_game.current_player.ops[cmd_arg].alive = True
-                            current_game.current_player.ops[cmd_arg].hp = 5
-                            current_game.current_player.ops[cmd_arg].bleeding_out = 6
-                            if current_game.current_player.ops[cmd_arg].reserve:
+                            target = current_game.current_player.ops[cmd_arg]
+                            attacker.skill_active = 0
+                            target.alive = True
+                            target.hp = 5
+                            target.bleeding_out = 6
+                            if target.reserve:
                                 current_game.current_player.cheated = True
-                                current_game.current_player.ops[cmd_arg].reserve = False
+                                target.reserve = False
                     case 4 | 9:  # Specialist
-                        current_game.current_player.selected_op.skill_active -= 1
-                        current_game.other_player.ops[cmd_arg].take_damage(check_range(
-                            current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False,
-                            False))
+                        attacker.skill_active -= 1
+                        target.take_damage(check_range(attacker, target, False, False))
                         should_switch = False
             else:  # If skill not active
-                current_game.other_player.ops[cmd_arg].take_damage(check_range(
-                    current_game.current_player.selected_op, current_game.other_player.ops[cmd_arg], False, False))
+                target.take_damage(check_range(attacker, target, False, False))
 
         case 4:  # RNF - Reinforce
-            current_game.current_player.crates -= 1
             selected_facility = current_game.current_player.get_facility_by_index(cmd_arg)
-            selected_facility.allocated += 1
+            if cmd_arg > current_game.current_player.crates:
+                current_game.current_player.cheated = True
+            if current_game.ruleset != 0:
+                current_game.current_player.crates -= 1
+                selected_facility.allocated += 1
+            else:
+                if len(cmd) == 2:
+                    clear_terminal()
+                    input("Command " + cmd + " is missing a third argument.\n\nPress Enter to continue...")
+                    should_switch = False
+                else:
+                    current_game.current_player.crates -= cmd_arg_alt
+                    selected_facility.allocated += cmd_arg_alt
 
         case 5:  # WDR - Withdraw
-            current_game.current_player.crates += 1
             selected_facility = current_game.current_player.get_facility_by_index(cmd_arg)
-            selected_facility.allocated -= 1
-            should_switch = False
+            if cmd_arg > selected_facility.allocated:
+                current_game.current_player.cheated = True
+            if current_game.ruleset != 0:
+                current_game.current_player.crates += 1
+                selected_facility.allocated -= 1
+                should_switch = False
+            else:
+                should_switch = False
+                if len(cmd) == 2:
+                    clear_terminal()
+                    input("Command " + cmd + " is missing a third argument.\n\nPress Enter to continue...")
+                else:
+                    current_game.current_player.crates += cmd_arg_alt
+                    selected_facility.allocated -= cmd_arg_alt
 
         case 6:  # RGP - Regroup
             if current_game.current_player.skill_delay > 0 or current_game.other_player.ops[2].skill_active > 0 \
@@ -560,6 +638,11 @@ def parse_command(command):
                     case 2:  # Command center
                         for op in current_game.current_player.ops:
                             switch_reserve_status(op, True)
+                        if extended_cmd:
+                            for op in current_game.current_player.ops:
+                                if current_game.ruleset == 0 and op.alive and not op.reserve:
+                                    current_game.current_player.selected_op = op
+                                    break
                     case _:
                         should_switch = False
 
@@ -588,6 +671,7 @@ def parse_command(command):
 clear_terminal()
 current_game.p1.name = read_line_input("Enter name of Player 1: ")
 current_game.p2.name = read_line_input("Enter name of Player 2: ")
+clear_terminal()
 # Remove colon and space before player name if player name is empty
 if current_game.p1.name == "":
     current_game.p1.name = "\b\b"
@@ -600,14 +684,16 @@ while not current_game.is_finished:
     # Check for win condition
     if check_game_over(current_game.current_player) or check_game_over(current_game.other_player):
         break
-    cmd = read_command_input("Player " + str(current_game.current_player.player_id) +
-                             " (" + current_game.current_player.selected_op.op_id + "): ")
+    print("Player " + str(current_game.current_player.player_id), end="")
+    if current_game.ruleset == 0:
+        print(" (" + current_game.current_player.selected_op.op_id + ")", end="")
+    cmd = read_command_input(": ")
 
     if not validate_command(cmd):
         if cmd == "":
-            print("No command entered.")
+            input("No command entered.\n\nPress Enter to continue...")
         else:
-            print("'" + cmd + "' is not a valid command.")
+            input("'" + cmd + "' is not a valid command.\n\nPress Enter to continue...")
         continue
     if not parse_command(cmd):
         break
