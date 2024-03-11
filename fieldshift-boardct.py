@@ -27,6 +27,7 @@ class Game:
         board.contents[9].extend(p2.ops[:5])
 
         ruleset = 0
+        self.operator_atk = 3
         self.ruleset = ruleset
         self.p1 = p1
         self.p2 = p2
@@ -40,7 +41,6 @@ class Game:
 
 
 class Operator:
-    atk = 3
     max_hp = 5
 
     def __init__(self, hp: int, op_id: str, team: int, reserve: bool, location: int, alive: bool,
@@ -211,7 +211,9 @@ def switch_reserve_status(operator: Operator, is_support: bool):
 # Check if attack is in range, factor in class/terrain, and return net damage
 def check_range(attacker: Operator, target: Operator, automatic: bool, assassinate: bool):
     net_range = 3
-    net_damage = attacker.atk
+    if current_game.ruleset == -1:
+        net_range = 2
+    net_damage = current_game.operator_atk
     if attacker.op_id[1] == ("0" or "5"):  # If operator class is Longwatch
         net_range = 5
     match target.location:
@@ -234,9 +236,8 @@ def check_range(attacker: Operator, target: Operator, automatic: bool, assassina
         net_range = 0
     if net_range < abs(attacker.location - target.location):
         if automatic:
-            # If check_range was executed due to an automatic attack, will not mark out of range as cheating
             return 0
-        current_game.current_player.cheated = True
+        return -1  # This is checked to warn the player of an out-of-range attack
     return net_damage
 
 
@@ -308,14 +309,15 @@ def change_ruleset(current_ruleset: int):
     current_ruleset_name = "LSTD"
     target_ruleset_name = "STDEX"
     ruleset_destination = 1  # Ruleset to switch to
-    # if current_ruleset == 1:
-    #     current_ruleset_name = target_ruleset_name
-    #     target_ruleset_name += " Type-A"
-    #     ruleset_destination = -1
-    # elif current_ruleset == -1:
-    #     target_ruleset_name = current_ruleset_name
-    #     current_ruleset_name = "STDEX Type-A"
-    #     ruleset_destination = 0
+    if current_ruleset == 1:
+        current_ruleset_name = target_ruleset_name
+        target_ruleset_name += " Type-A"
+        ruleset_destination = -1
+        current_game.operator_atk = 2
+    elif current_ruleset == -1:
+        target_ruleset_name = current_ruleset_name
+        current_ruleset_name = "STDEX Type-A"
+        ruleset_destination = 0
     clear_terminal()
     print("Player " + str(current_game.current_player.player_id)
           + ": Request ruleset change (" + current_ruleset_name + " --> " + target_ruleset_name + ")")
@@ -525,7 +527,14 @@ def parse_command(command):
                         current_game.board.contents[target.location].append(attacker)
                         attacker.location = target.location
                         # Deal damage to target
-                        target.take_damage(check_range(attacker, target, False, True))
+                        damage = check_range(attacker, target, False, True)
+                        if damage == -1:
+                            clear_terminal()
+                            input("Target out of range.\n\nPress enter to continue...")
+                            clear_terminal()
+                            should_switch = False
+                        else:
+                            target.take_damage(damage)
                     case 3 | 8:  # Medic
                         if current_game.current_player.ops[cmd_arg].alive:
                             should_switch = False
@@ -540,10 +549,24 @@ def parse_command(command):
                                 target.reserve = False
                     case 4 | 9:  # Specialist
                         attacker.skill_active -= 1
-                        target.take_damage(check_range(attacker, target, False, False))
+                        damage = check_range(attacker, target, False, False)
+                        if damage == -1:
+                            clear_terminal()
+                            input("Target out of range.\n\nPress enter to continue...")
+                            clear_terminal()
+                            should_switch = False
+                        else:
+                            target.take_damage(damage)
                         should_switch = False
             else:  # If skill not active
-                target.take_damage(check_range(attacker, target, False, False))
+                damage = check_range(attacker, target, False, False)
+                if damage == -1:
+                    clear_terminal()
+                    input("Target out of range.\n\nPress enter to continue...")
+                    clear_terminal()
+                    should_switch = False
+                else:
+                    target.take_damage(damage)
 
         case 4:  # RNF - Reinforce
             selected_facility = current_game.current_player.get_facility_by_index(cmd_arg)
