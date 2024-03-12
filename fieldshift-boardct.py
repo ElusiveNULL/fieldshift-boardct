@@ -703,6 +703,7 @@ if current_game.p2.name == "":
 current_game.game_log += current_game.p1.name + "\n" + current_game.p2.name + "\n"
 
 while not current_game.is_finished:
+    clear_terminal()
     print_board()
     # Check for win condition
     if check_game_over(current_game.current_player) or check_game_over(current_game.other_player):
