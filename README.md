@@ -5,7 +5,6 @@ The tool first takes each player's commands as input and calculates the result b
 
 The game's manual is included as a PDF. *It is intentionally designed to look complex in theory but to be simple in practice.*
 
-\[Version advisory\] The current version is fully playable with the LSTD ruleset. However, the STDEX and STDEX Type-A rulesets have not yet been implemented.
 
 ## How to use
 To start a game, both players must start the tool and enter their names when prompted. Players must communicate their commands to each other externally, then enter them into the tool. For example, if player one chose `25`, both player one and player two would enter `25` into BoardCT and the tool would then end player one's turn.
