@@ -41,8 +41,6 @@ class Game:
 
 
 class Operator:
-    max_hp = 5
-
     def __init__(self, hp: int, op_id: str, team: int, reserve: bool, location: int, alive: bool,
                  skill_active: int, bleeding_out: int):
         self.hp = hp
@@ -60,6 +58,10 @@ class Operator:
             self.alive = False
             self.skill_active = 0
             self.bleeding_out = 5
+            if self.team == current_game.current_player.player_id:
+                current_game.other_player.crates += 1
+            else:
+                current_game.current_player.crates += 1
             if dmg_amount == 8:  # Only the sniper's skill can deal this much damage
                 self.bleeding_out = 6  # The sniper's skill occurs on the target's turn, so the timer must be extended
             current_game.ops_bleeding_out.append(self)
@@ -70,8 +72,7 @@ class Operator:
 
 
 class Facility:
-    def __init__(self, job: str, allocated: int, facility_id: int, facility_aux: int):
-        self.job = job
+    def __init__(self, allocated: int, facility_id: int, facility_aux: int):
         self.allocated = allocated
         self.facility_id = facility_id
         self.facility_aux = facility_aux
@@ -105,10 +106,9 @@ class Battlefield:
         self.terrain = terrain
 
 
+# PREPARATIONS #
 def create_operators(player_num: int, is_reserve: bool):
     id_list = list(range(10))
-    if is_reserve:
-        id_list = id_list[4:]
     player_char = '+'  # This variable indicates which player controls the operator
     starting_sector = 0
     if player_num == 2:
@@ -124,13 +124,11 @@ def create_operators(player_num: int, is_reserve: bool):
     return result
 
 
-# PREPARATIONS #
 def create_player(player_name: str, player_id: int):
     operators = create_operators(player_id, False)
     operators.extend(create_operators(player_id, True))
-    # Overwatch operator assigned to first operator not on the field to avoid the variable ever being empty
-    return Player(player_name, player_id, operators, operators[0], Facility("Artillery", 0, 0, 0),
-                  Facility("Medbay", 0, 1, 4), Facility("Base", 0, 2, 0), False)
+    return Player(player_name, player_id, operators, operators[0], Facility(0, 0, 0),
+                  Facility(0, 1, 4), Facility(0, 2, 0), False)
 
 
 def create_sectors(board: Battlefield):
