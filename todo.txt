@@ -1,3 +1,1 @@
-Add support for STDEX and STDEX Type-A rulesets
-  - Not sure how to go about implementing this
-  - Add cheating checks for using dead operators in STDEX (incl. Type-A)
+Add tutorial
