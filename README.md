@@ -1,5 +1,5 @@
 # FieldShift BoardCT
-A tool to allow for playing my original game, FieldShift. FieldShift is a simple 1v1 turn-based strategy game played in the CLI.
+Python implementation of my original game, FieldShift. FieldShift is a simple 1v1 turn-based strategy game played in the CLI.
 
 The tool first takes each player's commands as input and calculates the result based on the game's rules. Afterwards, it prints the updated information on each player's resources as well as the updated contents of the board. This process repeats until a player wins.
 
