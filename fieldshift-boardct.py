@@ -26,9 +26,8 @@ class Game:
         board.contents[0].extend(p1.ops[:5])
         board.contents[9].extend(p2.ops[:5])
 
-        ruleset = 0
         self.operator_atk = 3
-        self.ruleset = ruleset
+        self.ruleset = 0
         self.p1 = p1
         self.p2 = p2
         self.board = board
@@ -197,6 +196,7 @@ def switch_reserve_status(operator: Operator, is_support: bool):
         if not is_support:
             current_game.current_player.crates += 1
         operator.reserve = True
+        operator.skill_active = 0  # Cancel skill when retreating
         # Remove operator from the board and select new operator
         current_game.board.contents[operator.location].remove(operator)
         if current_game.ruleset == 0 and current_game.current_player.selected_op == operator:
@@ -419,7 +419,7 @@ def validate_command(command: str):
 def parse_command(command):
     global current_game
     # Add command to game log unless save or load operation is done
-    if not command == "02" and not command == "03" and not command == "05":
+    if not command in ["02", "03", "05"]:
         current_game.game_log += command + "\n"
     # Reset the tracker for if the current player cheated
     current_game.current_player.cheated = False
@@ -448,7 +448,7 @@ def parse_command(command):
                     save_name = "fs_save_" + input("Enter name of save file: fs_save_")
                     if not os.path.isfile(save_name):
                         input("Could not find save file: " + save_name +
-                              "\n\nPress Enter to continue...")
+                            "\n\nPress Enter to continue...")
                     else:  # Load save
                         current_game = Game(True, open(save_name))
                         input("Loaded save file\n\nPress Enter to continue...")
@@ -463,7 +463,7 @@ def parse_command(command):
                 case 6:  # Dispute
                     if current_game.other_player.cheated:
                         print("\nPlayer " + str(current_game.other_player.player_id)
-                              + ": Game over - Called out for rule breakage\n[PLAYER " + str(
+                            + ": Game over - Called out for rule breakage\n[PLAYER " + str(
                             current_game.current_player.player_id) + " VICTORY]\n")
                         input("Press Enter to continue...")
                         return False
@@ -478,7 +478,7 @@ def parse_command(command):
                     should_switch = False
                 case 9:  # Concede
                     print("\nPlayer " + str(current_game.current_player.player_id)
-                          + ": Concede\n[PLAYER " + str(
+                        + ": Concede\n[PLAYER " + str(
                         current_game.other_player.player_id) + " VICTORY]\n")
                     input("Press Enter to continue...")
                     return False
@@ -487,7 +487,7 @@ def parse_command(command):
             if extended_cmd:  # SWP
                 temp_position = current_game.current_player.ops[cmd_arg].location
                 move_operator(current_game.current_player.ops[cmd_arg],
-                              current_game.current_player.ops[cmd_arg_alt].location)
+                            current_game.current_player.ops[cmd_arg_alt].location)
                 move_operator(current_game.current_player.ops[cmd_arg_alt], temp_position)
                 check_overwatch(current_game.current_player.ops[cmd_arg])
             else:  # SWC
@@ -505,8 +505,7 @@ def parse_command(command):
                     else:
                         move_operator(current_game.current_player.ops[cmd_arg_alt], cmd_arg)
                 else:
-                    clear_terminal()
-                    input("Command " + cmd + " is missing a third argument.\n\nPress Enter to continue...")
+                    input("\nCommand " + cmd + " is missing a third argument.\n\nPress Enter to continue...")
                     should_switch = False
 
         case 3:  # HIT - Attack
@@ -633,7 +632,7 @@ def parse_command(command):
                         should_switch = False
 
         case 9:  # SPT - Support
-            # Mark cheating SPT is banned by enemy technician
+            # Mark cheating if SPT is banned by enemy technician
             if current_game.other_player.ops[2].skill_active > 0 or current_game.other_player.ops[7].skill_active > 0:
                 current_game.current_player.cheated = True
             current_game.current_player.support_delay = 6
@@ -710,7 +709,6 @@ while not current_game.is_finished:
     if current_game.ruleset == 0:
         print(" (" + current_game.current_player.selected_op.op_id + ")", end="")
     cmd = read_command_input(": ")
-
     if not validate_command(cmd):
         if cmd == "":
             input("No command entered.\n\nPress Enter to continue...")
