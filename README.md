@@ -3,7 +3,7 @@ Python implementation of my original game, FieldShift. FieldShift is a simple 1v
 
 The tool first takes each player's commands as input and calculates the result based on the game's rules. Afterwards, it prints the updated information on each player's resources as well as the updated contents of the board. This process repeats until a player wins.
 
-The game's manual is included as a PDF. *It is intentionally designed to look complex in theory but to be simple in practice.*
+The game's manual is included as a PDF. *It was intentionally designed to look complex in theory but to be simple in practice.* My design philosophy has changed since then, but that idea is what originally inspired FieldShift.
 
 ## Advisory on commit messages
 This project was done before I knew how to make a proper commit message. As a result, the commit messages in this repository are not very helpful or descriptive, and I often included multiple changes in a single commit. 
