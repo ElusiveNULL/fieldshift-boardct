@@ -11,7 +11,7 @@ To start a game, both players must start the tool and enter their names when pro
 ![Screenshot of the tool in use](boardct-screenshot.png)
 
 ## Installation
-Binaries for Windows 10/11 and Linux are available in the releases section. The original Python file in the repository also includes a `#!` for quicker execution on Linux systems when moved to a directory on the `$PATH`.
+Binaries for Windows 10/11 and Linux amd64 are available in the releases section. The original Python file in the repository also includes a `#!` for quicker execution on Linux systems when moved to a directory on the `$PATH`.
 
 ## Notice on commit messages
 This project was done before I knew how to make a proper commit message. As a result, the commit messages in this repository are not very helpful or descriptive, and I often included multiple changes in a single commit. 
